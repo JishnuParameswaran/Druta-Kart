@@ -1,0 +1,49 @@
+# FastAPI
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+websockets==14.1
+
+# LangChain + LangGraph
+langchain==0.3.9
+langchain-groq==0.2.1
+langchain-community==0.3.9
+langgraph==0.2.53
+
+# Groq
+groq==0.13.0
+
+# Database
+supabase==2.10.0
+
+# Vector DB
+chromadb==0.5.23
+sentence-transformers==3.3.1
+
+# NLP
+lingua-language-detector==2.0.2
+transformers==4.47.1
+torch==2.5.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Image
+Pillow==11.0.0
+exifread==3.0.0
+requests==2.32.3
+
+# Config
+python-dotenv==1.0.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# Rate limiting + Observability
+slowapi==0.1.9
+structlog==24.4.0
+prometheus-client==0.21.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.1
+
+# Utilities
+aiofiles==24.1.0

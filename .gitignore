@@ -1,0 +1,38 @@
+# Environment variables - NEVER commit
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+env/
+.venv/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/build/
+
+# ChromaDB
+backend/rag/chroma_db/
+
+# IDE
+.vscode/
+.cursor/
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Test cache
+.coverage
+.pytest_cache/
+
+# Uploads
+backend/uploads/
+
+# Logs
+*.log
