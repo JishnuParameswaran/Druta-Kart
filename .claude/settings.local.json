@@ -3,7 +3,20 @@
     "allow": [
       "Bash(cd:*)",
       "Bash(pip show:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart/backend && pytest ../tests/test_emotion.py -v 2>&1)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart/backend && python -m pytest ../tests/test_emotion.py -v 2>&1)",
+      "Bash(pip install:*)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart && python -m pytest tests/test_emotion.py tests/test_language_detector.py tests/test_translator.py -v 2>&1)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart && python -m pytest tests/test_db.py -v 2>&1)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart && python -m py_compile backend/db/models.py && python -m py_compile backend/db/customer_repo.py && echo \"Compile OK\" && python -m pytest tests/test_db.py -v 2>&1)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart && python -m pytest tests/test_retention.py -v 2>&1)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart && python -m pytest tests/test_tools.py -v 2>&1)",
+      "Bash(head:*)",
+      "Bash(pytest:*)",
+      "Bash(git:*)",
+      "Bash(python:*)",
+      "Bash(wc:*)"
     ]
   }
 }
