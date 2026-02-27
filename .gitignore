@@ -36,3 +36,9 @@ backend/uploads/
 
 # Logs
 *.log
+# Dataset images - too large for GitHub
+data/images/
+data/synthetic/profiles.jsonl
+data/synthetic/profiles_checkpoint.jsonl
+data/synthetic/conversations.jsonl
+data/synthetic/validation_report.json
