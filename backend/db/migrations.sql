@@ -196,6 +196,27 @@ CREATE INDEX IF NOT EXISTS idx_fraud_flags_status     ON fraud_flags (status);
 
 
 -- ===========================================================================
+-- 7. MISSING TABLE: security_events
+--
+--    security/safety_layer.log_security_event() inserts into this table
+--    whenever a prompt-injection or red-team probe is detected.
+-- ===========================================================================
+
+CREATE TABLE IF NOT EXISTS security_events (
+    id          TEXT         PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+    event_type  TEXT         NOT NULL,
+    user_id     TEXT,
+    session_id  TEXT,
+    detail      TEXT,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_security_events_user_id    ON security_events (user_id);
+CREATE INDEX IF NOT EXISTS idx_security_events_event_type ON security_events (event_type);
+CREATE INDEX IF NOT EXISTS idx_security_events_created_at ON security_events (created_at);
+
+
+-- ===========================================================================
 -- NOTE: wallet_transactions, refund_requests, replacement_requests
 --
 --    These tables exist in your Supabase schema but are NOT referenced by

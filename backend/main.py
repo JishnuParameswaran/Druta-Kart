@@ -258,6 +258,17 @@ def _process_message(
     """Run the full NLP → supervisor pipeline. Returns (result_dict, latency_ms)."""
     start = time.perf_counter()
 
+    # ── Input safety: sanitize → injection check → red-team check ─────────────
+    from security.safety_layer import run_input_safety, run_output_safety
+    safety = run_input_safety(raw_message, user_id, session_id)
+    if not safety["safe"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Request blocked: {safety['blocked_reason']}",
+        )
+    raw_message = safety["cleaned_text"]
+    # ── End input safety ───────────────────────────────────────────────────────
+
     language = _detect_language(raw_message)
     emotion = _analyze_emotion(raw_message)
     english_message = _translate_to_english(raw_message, language)
@@ -279,6 +290,10 @@ def _process_message(
     result["response"] = _translate_to_language(result.get("response", ""), language)
     result["language"] = language
     result["emotion"] = emotion
+
+    # ── Output safety: UUID scrub → PII masking → system-prompt strip ─────────
+    result["response"] = run_output_safety(result["response"], user_id, session_id)
+    # ── End output safety ──────────────────────────────────────────────────────
 
     latency_s = time.perf_counter() - start
     _record_metrics(result, language, latency_s)
