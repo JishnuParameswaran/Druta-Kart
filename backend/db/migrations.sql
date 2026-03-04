@@ -217,6 +217,38 @@ CREATE INDEX IF NOT EXISTS idx_security_events_created_at ON security_events (cr
 
 
 -- ===========================================================================
+-- 8. MISSING TABLE: orders
+--
+--    tools/order_lookup_tool.py:33 queries client.table("orders")
+--    This table is not present in the original schema — add it here.
+--
+--    Columns match exactly what order_lookup_tool returns:
+--        order_id, user_id, status, items, amount_inr,
+--        placed_at, estimated_delivery, delivery_partner, tracking_url
+-- ===========================================================================
+
+CREATE TABLE IF NOT EXISTS orders (
+    order_id            TEXT         PRIMARY KEY,
+    user_id             TEXT         NOT NULL,
+    status              TEXT         NOT NULL DEFAULT 'processing'
+                            CHECK (status IN (
+                                'processing', 'out_for_delivery',
+                                'delivered', 'delayed', 'cancelled'
+                            )),
+    items               JSONB        NOT NULL DEFAULT '[]',
+    amount_inr          NUMERIC      NOT NULL DEFAULT 0.0,
+    placed_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    estimated_delivery  TIMESTAMPTZ,
+    delivery_partner    TEXT,
+    tracking_url        TEXT,
+    created_at          TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders (user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status  ON orders (status);
+
+
+-- ===========================================================================
 -- NOTE: wallet_transactions, refund_requests, replacement_requests
 --
 --    These tables exist in your Supabase schema but are NOT referenced by

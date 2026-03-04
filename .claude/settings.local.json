@@ -18,7 +18,11 @@
       "Bash(python:*)",
       "Bash(wc:*)",
       "Bash(PYTHONIOENCODING=utf-8 python:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(docker info:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker ps:*)",
+      "Bash(curl:*)"
     ]
   }
 }
