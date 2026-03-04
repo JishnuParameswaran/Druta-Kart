@@ -11,6 +11,7 @@ Request flow:
 """
 from __future__ import annotations
 
+import base64
 import logging
 import os
 import re
@@ -22,7 +23,7 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
@@ -71,6 +72,14 @@ _UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 
+_ALLOWED_AUDIO_TYPES = {
+    "audio/wav", "audio/wave", "audio/x-wav",
+    "audio/mpeg", "audio/mp3",
+    "audio/ogg",
+    "audio/webm",
+}
+_MAX_AUDIO_BYTES = 25 * 1024 * 1024  # 25 MB (Whisper limit)
+
 # Per-session image upload counter (in-memory; resets on restart)
 _session_image_counts: dict[str, int] = {}
 
@@ -112,6 +121,16 @@ class ImageUploadResponse(BaseModel):
     image_path: str
     session_id: str
     uploads_remaining: int
+
+
+class VoiceResponse(BaseModel):
+    text_response: str
+    audio_base64: str
+    language: str
+    emotion: str
+    intent: str
+    resolved: bool
+    latency_ms: float
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +176,24 @@ def _translate_to_language(text: str, language: str) -> str:
     except Exception as exc:
         logger.warning("Translation to %s failed: %s", language, exc)
         return text
+
+
+def _transcribe_audio(audio_path: str) -> str:
+    try:
+        from multimodal.stt_processor import transcribe_audio
+        return transcribe_audio(audio_path)
+    except Exception as exc:
+        logger.error("STT transcription failed: %s", exc)
+        return ""
+
+
+def _synthesize_speech(text: str, language: str) -> bytes:
+    try:
+        from multimodal.tts_processor import synthesize_speech
+        return synthesize_speech(text, language)
+    except Exception as exc:
+        logger.warning("TTS synthesis failed: %s", exc)
+        return b""
 
 
 def _extract_order_id(text: str) -> Optional[str]:
@@ -385,6 +422,91 @@ async def upload_image(
         session_id=session_id,
         uploads_remaining=max(uploads_remaining, 0),
     )
+
+
+@app.post("/voice", response_model=VoiceResponse)
+@limiter.limit("30/minute")
+async def voice(
+    request: Request,
+    user_id: str = Form(...),
+    session_id: str = Form(...),
+    file: UploadFile = File(...),
+):
+    """Voice chat endpoint.
+
+    Accepts an audio file upload (WAV/MP3/OGG/WEBM) plus ``user_id`` and
+    ``session_id`` as form fields.  Runs STT → NLP pipeline → supervisor →
+    TTS and returns both the text response and audio as base64.
+    Rate-limited to 30 requests per minute per IP.
+    """
+    # Validate content type
+    content_type = (file.content_type or "").split(";")[0].strip()
+    if content_type not in _ALLOWED_AUDIO_TYPES:
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                f"Unsupported audio type: {content_type!r}. "
+                f"Allowed: wav, mp3, ogg, webm."
+            ),
+        )
+
+    # Read and size-check
+    data = await file.read()
+    if len(data) > _MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Audio too large ({len(data) // (1024 * 1024)} MB). Maximum 25 MB.",
+        )
+
+    # Save to temp file so stt_processor can open it by path
+    suffix = Path(file.filename or "audio.wav").suffix or ".wav"
+    audio_filename = f"{session_id}_{uuid.uuid4().hex[:8]}{suffix}"
+    audio_path = _UPLOAD_DIR / audio_filename
+    audio_path.write_bytes(data)
+
+    try:
+        # STT: audio → transcript
+        transcript = _transcribe_audio(str(audio_path))
+        if not transcript:
+            raise HTTPException(
+                status_code=422,
+                detail="Could not transcribe audio. Please speak clearly and try again.",
+            )
+
+        # NLP pipeline + supervisor — identical to /chat
+        result, latency_ms = _process_message(
+            user_id=user_id,
+            session_id=session_id,
+            raw_message=transcript,
+        )
+
+        # TTS: response text → audio bytes → base64
+        language = result.get("language", "en-IN")
+        response_text = result.get("response", "")
+        audio_bytes = _synthesize_speech(response_text, language)
+        audio_b64 = base64.b64encode(audio_bytes).decode("utf-8") if audio_bytes else ""
+
+        logger.info(
+            "Voice: session=%s lang=%s transcript_len=%d tts_bytes=%d",
+            session_id, language, len(transcript), len(audio_bytes),
+        )
+
+        return VoiceResponse(
+            text_response=response_text,
+            audio_base64=audio_b64,
+            language=language,
+            emotion=result.get("emotion", "neutral"),
+            intent=result.get("intent", "general"),
+            resolved=result.get("resolved", False),
+            latency_ms=latency_ms,
+        )
+
+    finally:
+        # Always clean up the temp audio file
+        try:
+            audio_path.unlink(missing_ok=True)
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------

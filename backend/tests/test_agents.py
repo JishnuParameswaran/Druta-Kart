@@ -114,10 +114,23 @@ _stub_module("sentence_transformers", SentenceTransformer=MagicMock())
 # supabase stub
 _stub_module("supabase", create_client=MagicMock(return_value=MagicMock()))
 
-# structlog stub
+# structlog stub — must expose processors and stdlib so observability/logger.py
+# can call structlog.configure(processors=[structlog.processors.TimeStamper(...)],
+# wrapper_class=structlog.stdlib.BoundLogger, ...) without AttributeError.
 _structlog = _stub_module("structlog")
 _structlog.get_logger = MagicMock(return_value=MagicMock())
 _structlog.configure = MagicMock()
+
+_structlog_proc = _stub_module("structlog.processors")
+_structlog_proc.TimeStamper = MagicMock(return_value=MagicMock())
+_structlog_proc.JSONRenderer = MagicMock(return_value=MagicMock())
+_structlog.processors = _structlog_proc
+
+_structlog_stdlib = _stub_module("structlog.stdlib")
+_structlog_stdlib.add_log_level = MagicMock()
+_structlog_stdlib.BoundLogger = MagicMock()
+_structlog_stdlib.LoggerFactory = MagicMock(return_value=MagicMock())
+_structlog.stdlib = _structlog_stdlib
 
 # lingua stub
 _lingua = _stub_module("lingua")
@@ -151,6 +164,10 @@ _stub_module("sarvamai")
 _BACKEND = str(Path(__file__).parent.parent)
 if _BACKEND not in sys.path:
     sys.path.insert(0, _BACKEND)
+
+# Module-level `run` reference so TestImageValidationAgent tests that call
+# run(state) without a local import can resolve the name from module scope.
+from agents.image_validation_agent import run  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
@@ -1287,3 +1304,126 @@ class TestSupervisor:
             "hallucination_flagged",
         }
         assert required.issubset(set(fields.keys()))
+
+
+# ---------------------------------------------------------------------------
+# TestDispatchAgent
+# ---------------------------------------------------------------------------
+
+class TestDispatchAgent:
+    """Tests for agents/dispatch_agent.py"""
+
+    def _mock_checklist_tool(self):
+        mock = MagicMock()
+        mock.invoke.return_value = {
+            "checklist_id": "ck-test-001",
+            "issues_reported": ["late_delivery"],
+            "checklist_items": [
+                "Check delivery partner GPS",
+                "Identify delay cause",
+                "Provide customer with updated ETA",
+            ],
+            "item_count": 3,
+            "message": "Dispatch checklist generated with 3 action items.",
+        }
+        return mock
+
+    def _mock_llm(self, content="We are sorry for the inconvenience. Our dispatch team is on it."):
+        mock = MagicMock()
+        mock.invoke.return_value = _AIMessage(content=content)
+        return mock
+
+    def test_no_order_id_still_resolves(self):
+        """Dispatch agent resolves delivery issues even without an order_id."""
+        from agents.dispatch_agent import run
+        state = _base_state(
+            messages=[_hm("My package has not arrived yet.")],
+            order_id=None,
+        )
+        with patch.dict(sys.modules, {
+            "tools.dispatch_checklist_tool": types.SimpleNamespace(
+                dispatch_checklist_tool=self._mock_checklist_tool()
+            ),
+        }), patch("agents.dispatch_agent._get_llm", return_value=self._mock_llm()):
+            result = run(state)
+
+        assert result["resolved"] is True
+        assert result["resolution_type"] == "dispatch_escalation"
+
+    def test_detects_not_delivered_issue(self):
+        """Message containing 'not delivered' should map to not_delivered issue type."""
+        from agents.dispatch_agent import _detect_issues
+        issues = _detect_issues("My order was not delivered today")
+        assert "not_delivered" in issues
+
+    def test_detects_late_delivery_issue(self):
+        """Message containing 'order is late' should map to late_delivery issue type."""
+        from agents.dispatch_agent import _detect_issues
+        issues = _detect_issues("My order is late, it should have arrived an hour ago")
+        assert "late_delivery" in issues
+
+    def test_dispatch_checklist_tool_called(self):
+        """dispatch_checklist_tool must always appear in tools_called."""
+        from agents.dispatch_agent import run
+        state = _base_state(messages=[_hm("Where is my delivery? It has been hours.")])
+        mock_checklist = self._mock_checklist_tool()
+
+        with patch.dict(sys.modules, {
+            "tools.dispatch_checklist_tool": types.SimpleNamespace(
+                dispatch_checklist_tool=mock_checklist
+            ),
+        }), patch("agents.dispatch_agent._get_llm", return_value=self._mock_llm()):
+            result = run(state)
+
+        assert "dispatch_checklist_tool" in result["tools_called"]
+        mock_checklist.invoke.assert_called_once()
+
+    def test_order_lookup_called_when_order_id_present(self):
+        """When order_id is in state, order_lookup_tool must be invoked and tracked."""
+        from agents.dispatch_agent import run
+        state = _base_state(
+            messages=[_hm("My order ORD123 has not arrived.")],
+            order_id="ORD123",
+        )
+        mock_lookup = MagicMock()
+        mock_lookup.invoke.return_value = {
+            "found": True,
+            "order_id": "ORD123",
+            "status": "out_for_delivery",
+            "items": ["Milk"],
+            "amount_inr": 80,
+            "estimated_delivery": "5:00 PM",
+            "delivery_partner": "Zomato",
+        }
+
+        with patch.dict(sys.modules, {
+            "tools.order_lookup_tool": types.SimpleNamespace(order_lookup_tool=mock_lookup),
+            "tools.dispatch_checklist_tool": types.SimpleNamespace(
+                dispatch_checklist_tool=self._mock_checklist_tool()
+            ),
+        }), patch("agents.dispatch_agent._get_llm", return_value=self._mock_llm()):
+            result = run(state)
+
+        assert "order_lookup_tool" in result["tools_called"]
+        mock_lookup.invoke.assert_called_once_with({"order_id": "ORD123", "user_id": "u1"})
+
+    def test_checklist_tool_failure_still_resolves(self):
+        """If dispatch_checklist_tool raises, the agent must still return resolved=True."""
+        from agents.dispatch_agent import run
+        state = _base_state(messages=[_hm("My delivery is very late!")])
+        mock_checklist = MagicMock()
+        mock_checklist.invoke.side_effect = RuntimeError("DB connection failed")
+
+        with patch.dict(sys.modules, {
+            "tools.dispatch_checklist_tool": types.SimpleNamespace(
+                dispatch_checklist_tool=mock_checklist
+            ),
+        }), patch("agents.dispatch_agent._get_llm", return_value=self._mock_llm(
+            content="We're sorry. Our dispatch team is investigating your delivery."
+        )):
+            result = run(state)
+
+        assert result["resolved"] is True
+        assert result["resolution_type"] == "dispatch_escalation"
+        assert isinstance(result["response"], str)
+        assert len(result["response"]) > 0

@@ -7,6 +7,7 @@ Orchestrates all specialist agents in a directed graph:
     └─► detect_intent
            ├─► complaint  ─► retention ─► respond ─► END
            ├─► order ──────────────────► respond ─► END
+           ├─► dispatch ───────────────► respond ─► END
            └─► general ─────────────────► respond ─► END
 
 State flows through nodes as a typed dict.  Each node function receives the
@@ -110,14 +111,16 @@ def detect_intent_node(state: AgentState) -> dict:
         result = llm.invoke([HumanMessage(content=(
             "Classify this customer support message into ONE category:\n"
             "- complaint  (damaged item, missing item, wrong item, expired food)\n"
-            "- order_tracking  (where is my order, late delivery, ETA, cancellation)\n"
+            "- order_tracking  (where is my order, ETA, cancellation)\n"
+            "- delivery  (not delivered, wrong address, late delivery, damaged package, "
+            "missing items from delivery, delivery partner unreachable, refused delivery)\n"
             "- payment  (payment failed, double charge, refund status)\n"
             "- general  (anything else)\n\n"
             f"Message: \"{user_message}\"\n\n"
             "Reply with ONLY the category word."
         ))])
         intent = result.content.strip().lower().split()[0]
-        if intent not in ("complaint", "order_tracking", "payment", "general"):
+        if intent not in ("complaint", "order_tracking", "delivery", "payment", "general"):
             intent = "general"
         logger.info("Intent detected: %s for user=%s", intent, state.get("user_id"))
         return {"intent": intent}
@@ -141,6 +144,15 @@ def complaint_node(state: AgentState) -> dict:
 
 def order_node(state: AgentState) -> dict:
     from agents.order_agent import run
+    return run(state)
+
+
+# ---------------------------------------------------------------------------
+# Node: dispatch
+# ---------------------------------------------------------------------------
+
+def dispatch_node(state: AgentState) -> dict:
+    from agents.dispatch_agent import run
     return run(state)
 
 
@@ -248,6 +260,8 @@ def _route_intent(state: AgentState) -> str:
         return "complaint"
     elif intent == "order_tracking":
         return "order"
+    elif intent == "delivery":
+        return "dispatch"
     else:
         return "general"
 
@@ -264,6 +278,7 @@ def _build_graph():
         g.add_node("detect_intent", detect_intent_node)
         g.add_node("complaint", complaint_node)
         g.add_node("order", order_node)
+        g.add_node("dispatch", dispatch_node)
         g.add_node("retention", retention_node)
         g.add_node("general", general_node)
         g.add_node("respond", respond_node)
@@ -276,6 +291,7 @@ def _build_graph():
             {
                 "complaint": "complaint",
                 "order": "order",
+                "dispatch": "dispatch",
                 "general": "general",
             },
         )
@@ -283,6 +299,7 @@ def _build_graph():
         g.add_edge("complaint", "retention")
         g.add_edge("retention", "respond")
         g.add_edge("order", "respond")
+        g.add_edge("dispatch", "respond")
         g.add_edge("general", "respond")
         g.add_edge("respond", END)
 

@@ -24,7 +24,7 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-_PHYSICAL_COMPLAINT_TYPES = {"damaged", "wrong", "expired", "missing"}
+_PHYSICAL_COMPLAINT_TYPES = {"damaged", "expired"}
 
 # ---------------------------------------------------------------------------
 # Internal helpers

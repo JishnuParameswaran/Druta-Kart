@@ -16,7 +16,9 @@
       "Bash(pytest:*)",
       "Bash(git:*)",
       "Bash(python:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(python3:*)"
     ]
   }
 }

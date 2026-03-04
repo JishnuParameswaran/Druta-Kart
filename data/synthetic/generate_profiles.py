@@ -266,26 +266,35 @@ def fetch_all_names(groq_api_key: str, total: int, batch_size: int = 100) -> lis
 
 
 # ── IMAGE RESOLUTION ──────────────────────────────────────────────────────────
-_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
-def _list_images(folder: Path) -> list[Path]:
-    if not folder.exists():
-        return []
-    return [f for f in folder.iterdir() if f.suffix.lower() in _IMAGE_EXT]
+# Flat pool of all images found anywhere under data/images/ (built once on first use)
+_ALL_IMAGES: list[Path] = []
+
+
+def _build_image_pool() -> list[Path]:
+    """Recursively collect every .jpg/.jpeg/.png under IMAGES_DIR."""
+    pool: list[Path] = []
+    for pattern in ("*.jpg", "*.jpeg", "*.png"):
+        pool.extend(IMAGES_DIR.rglob(pattern))
+    return pool
 
 
 def resolve_image(complaint_item: str) -> dict:
     """
-    Determine image_path and metadata for a damaged_product complaint.
+    Pick a random image from the full data/images/ tree for a damaged_product complaint.
 
     Returns a dict with keys:
         image_path      – relative path from repo root (forward slashes)
-        image_type      – real_damage | misidentification | ai_generated
-        image_category  – damaged_food | damaged_electronics
+        image_type      – inferred from subfolder: real_damage | misidentification | ai_generated
+        image_category  – damaged_food | damaged_electronics (derived from complaint item)
         image_needed    – always True for damaged_product
-        needs_image     – True if placeholder (folder was empty)
+        needs_image     – True only when no images exist anywhere under IMAGES_DIR
     """
-    # Determine category from item name
+    global _ALL_IMAGES
+    if not _ALL_IMAGES:
+        _ALL_IMAGES = _build_image_pool()
+
+    # Derive category from the complaint item keyword
     item_lower = complaint_item.lower()
     category = DEFAULT_CATEGORY
     for keyword, cat in ITEM_TO_CATEGORY.items():
@@ -293,37 +302,34 @@ def resolve_image(complaint_item: str) -> dict:
             category = cat
             break
 
-    # Choose image type
-    image_type: str = random.choices(_IMG_TYPES, weights=_IMG_WEIGHTS, k=1)[0]
-
-    # Resolve folder
-    if image_type == "real_damage":
-        folder = IMAGES_DIR / category
-    else:
-        folder = IMAGES_DIR / IMAGE_TYPE_FOLDER[image_type]
-
-    files = _list_images(folder)
-
-    if files:
-        chosen = random.choice(files)
-        rel_path = chosen.relative_to(REPO_ROOT).as_posix()
+    if not _ALL_IMAGES:
         return {
-            "image_path":     rel_path,
-            "image_type":     image_type,
+            "image_path":     "data/images/placeholder.jpg",
+            "image_type":     "real_damage",
             "image_category": category,
             "image_needed":   True,
-            "needs_image":    False,
+            "needs_image":    True,
         }
+
+    chosen = random.choice(_ALL_IMAGES)
+    rel_path = chosen.relative_to(REPO_ROOT).as_posix()
+
+    # Infer image_type from the top-level subfolder name
+    top_folder = chosen.relative_to(IMAGES_DIR).parts[0].lower()
+    if "ai_generated" in top_folder:
+        image_type = "ai_generated"
+    elif "misidentification" in top_folder:
+        image_type = "misidentification"
     else:
-        # Folder missing or empty — store a descriptive placeholder
-        placeholder = f"data/images/{folder.name}/placeholder.jpg"
-        return {
-            "image_path":     placeholder,
-            "image_type":     image_type,
-            "image_category": category,
-            "image_needed":   True,
-            "needs_image":    True,  # caller should populate image later
-        }
+        image_type = "real_damage"
+
+    return {
+        "image_path":     rel_path,
+        "image_type":     image_type,
+        "image_category": category,
+        "image_needed":   True,
+        "needs_image":    False,
+    }
 
 
 # ── SEGMENT COMPUTATION ───────────────────────────────────────────────────────

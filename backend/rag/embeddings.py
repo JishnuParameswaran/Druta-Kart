@@ -46,6 +46,9 @@ class _SentenceTransformerEmbeddingFunction:
         self._model = SentenceTransformer(model_name)
         logger.info("Loaded sentence-transformer model: %s", model_name)
 
+    def name(self) -> str:
+        return "sentence-transformer"
+
     def __call__(self, input: List[str]) -> List[List[float]]:  # noqa: A002
         embeddings = self._model.encode(input, show_progress_bar=False)
         return embeddings.tolist()
