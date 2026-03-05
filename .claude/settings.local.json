@@ -22,7 +22,8 @@
       "Bash(docker info:*)",
       "Bash(docker compose:*)",
       "Bash(docker ps:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(rm:*)"
     ]
   }
 }
