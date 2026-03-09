@@ -48,7 +48,9 @@ _UUID_RE = re.compile(
 # ── Threat phrase lists ────────────────────────────────────────────────────────
 
 _INJECTION_PHRASES: list[str] = [
+    "ignore all instructions",
     "ignore previous instructions",
+    "disregard instructions",
     "forget your instructions",
     "you are now",
     "pretend you are",

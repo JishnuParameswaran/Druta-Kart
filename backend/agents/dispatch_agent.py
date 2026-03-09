@@ -229,6 +229,21 @@ def run(state: dict) -> dict:
     except Exception as exc:
         logger.error("dispatch_checklist_tool failed: %s", exc)
 
+    # Credit wallet for late delivery compensation
+    wallet_credited = False
+    if "late_delivery" in issues:
+        try:
+            from tools.wallet_credit_tool import wallet_credit_tool
+            credit_result = wallet_credit_tool.invoke({
+                "user_id": user_id,
+                "amount_inr": 50,
+                "reason": "late_delivery_compensation",
+            })
+            tools_called.append("wallet_credit_tool")
+            wallet_credited = credit_result.get("credited_amount", 0) > 0
+        except Exception as exc:
+            logger.error("wallet_credit_tool failed in dispatch agent: %s", exc)
+
     # Build empathetic LLM response
     response = _build_dispatch_response(
         user_message=user_message,
@@ -238,9 +253,12 @@ def run(state: dict) -> dict:
         order=order,
     )
 
+    # Resolved if compensation applied or checklist created; otherwise escalated
+    resolved = wallet_credited or bool(checklist.get("checklist_id"))
+
     return {
         "response": response,
-        "resolved": True,
+        "resolved": resolved,
         "resolution_type": "dispatch_escalation",
         "tools_called": tools_called,
     }

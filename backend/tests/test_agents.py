@@ -801,10 +801,12 @@ class TestOrderAgent:
 
     def test_late_order_gets_wallet_credit(self):
         from agents.order_agent import run
+        from datetime import datetime, timezone, timedelta
+        estimated_delivery = (datetime.now(timezone.utc) - timedelta(minutes=45)).isoformat()
         state = _base_state(order_id="ORD456")
         order_data = {
             "found": True, "order_id": "ORD456", "status": "delayed",
-            "items": ["Coke"], "amount_inr": 50, "estimated_delivery": "2:00 PM",
+            "items": ["Coke"], "amount_inr": 50, "estimated_delivery": estimated_delivery,
         }
         mock_lookup = MagicMock()
         mock_lookup.invoke.return_value = order_data
@@ -858,10 +860,12 @@ class TestOrderAgent:
 
     def test_late_order_response_contains_credit_mention(self):
         from agents.order_agent import run
+        from datetime import datetime, timezone, timedelta
+        estimated_delivery = (datetime.now(timezone.utc) - timedelta(minutes=45)).isoformat()
         state = _base_state(order_id="ORD456")
         order_data = {
             "found": True, "order_id": "ORD456", "status": "late",
-            "items": [], "amount_inr": 0, "estimated_delivery": "now",
+            "items": [], "amount_inr": 0, "estimated_delivery": estimated_delivery,
         }
         mock_lookup = MagicMock()
         mock_lookup.invoke.return_value = order_data

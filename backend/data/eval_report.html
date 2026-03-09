@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Druta Kart AI Evaluation Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #2d3436; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  h1 { font-size: 2rem; color: #6c5ce7; margin-bottom: 4px; }
+  .subtitle { color: #636e72; font-size: 0.95rem; margin-bottom: 32px; }
+  h2 { font-size: 1.3rem; color: #2d3436; border-left: 4px solid #6c5ce7;
+        padding-left: 12px; margin: 32px 0 16px; }
+  h3 { font-size: 1.05rem; color: #2d3436; margin-bottom: 8px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .kpi { background: #fff; border-radius: 10px; padding: 20px 16px;
+           box-shadow: 0 2px 8px rgba(0,0,0,0.07); text-align: center; }
+  .kpi .val { font-size: 2rem; font-weight: 700; color: #6c5ce7; }
+  .kpi .lbl { font-size: 0.78rem; color: #636e72; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi.green .val { color: #27ae60; }
+  .kpi.red   .val { color: #e74c3c; }
+  .kpi.amber .val { color: #f39c12; }
+  table { width: 100%; border-collapse: collapse; background: #fff;
+           border-radius: 10px; overflow: hidden;
+           box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 32px; }
+  th { background: #6c5ce7; color: #fff; padding: 12px 14px; text-align: left; font-size: 0.85rem; }
+  td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8f9ff; }
+  .dialogue-block { background: #fff; border-radius: 10px; padding: 20px 24px;
+                     box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 24px; }
+  .lang-badge { background: #6c5ce7; color: #fff; font-size: 0.72rem;
+                 padding: 2px 8px; border-radius: 10px; margin-left: 8px;
+                 vertical-align: middle; }
+  .scores { color: #636e72; font-size: 0.85rem; margin: 6px 0 12px; }
+  .chat { display: flex; flex-direction: column; gap: 10px; }
+  .customer-msg, .bot-msg { max-width: 82%; padding: 10px 14px; border-radius: 12px; }
+  .customer-msg { background: #dfe6e9; align-self: flex-start; }
+  .bot-msg { background: #ede9fe; align-self: flex-end; }
+  .speaker { display: block; font-size: 0.72rem; font-weight: 600;
+              color: #636e72; margin-bottom: 4px; text-transform: uppercase; }
+  .bot-msg .speaker { color: #6c5ce7; }
+  .customer-msg p, .bot-msg p { font-size: 0.9rem; line-height: 1.5; }
+  .footer { text-align: center; color: #b2bec3; font-size: 0.8rem; margin-top: 40px; }
+  @media print {
+    body { background: #fff; }
+    .page { max-width: 100%; padding: 16px; }
+    .kpi { box-shadow: none; border: 1px solid #ddd; }
+    table { box-shadow: none; }
+    .dialogue-block { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Druta Kart</h1>
+  <p class="subtitle">AI Customer Support &mdash; Evaluation Report &mdash; Generated: 2026-03-09 12:17 UTC</p>
+
+  <h2>1. Executive Summary</h2>
+  <div class="kpi-grid">
+    <div class="kpi green">
+      <div class="val">91.3%</div><div class="lbl">Resolution Rate</div></div>
+    <div class="kpi green">
+      <div class="val">89.3%</div><div class="lbl">Intent Accuracy</div></div>
+    <div class="kpi green">
+      <div class="val">81.6%</div><div class="lbl">Language Accuracy</div></div>
+    <div class="kpi green">
+      <div class="val">4.9<span style="font-size:1rem">/5</span></div><div class="lbl">Avg Tone Score</div></div>
+    <div class="kpi green">
+      <div class="val">0.0%</div><div class="lbl">Hallucination Rate</div></div>
+    <div class="kpi green">
+      <div class="val">100.0%</div><div class="lbl">Offer Compliance</div></div>
+    <div class="kpi red">
+      <div class="val">5</div><div class="lbl">Fraud Detected</div></div>
+    <div class="kpi amber">
+      <div class="val">5</div><div class="lbl">Human Handoffs</div></div>
+    <div class="kpi">
+      <div class="val">103</div><div class="lbl">Conversations</div></div>
+    <div class="kpi">
+      <div class="val">10,064<span style="font-size:1rem">ms</span></div><div class="lbl">Avg Latency</div></div>
+  </div>
+
+  <h2>2. Token Usage &amp; Cost</h2>
+  <table>
+    <tr><th>Model</th><th>Tokens</th><th>Cost</th></tr>
+    <tr><td>llama-3.1-8b-instant</td><td>71,440</td><td>$0.0043</td></tr>
+    <tr><td>llama-3.3-70b-versatile</td><td>141,780</td><td>$0.0837</td></tr>
+    <tr><td><b>Total</b></td><td><b>213,220</b></td><td><b>$0.0879</b></td></tr>
+  </table>
+  <p style="margin:-24px 0 32px;color:#636e72;font-size:0.88rem">
+    Total API calls: <b>284</b> &nbsp;|&nbsp;
+    Rate limit hits: <b>0</b> &nbsp;|&nbsp;
+    Elapsed: <b>23.3 min</b>
+  </p>
+
+  <h2>3. Scenario Breakdown</h2>
+  <table>
+    <tr>
+      <th>Scenario</th><th>Count</th><th>Resolution</th><th>Intent Acc</th>
+      <th>Fraud Detected</th><th>Human Handoff</th><th>Avg Latency</th>
+    </tr>
+    
+        <tr>
+          <td>Damaged Product</td>
+          <td style="text-align:center">19</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">89.5%</td>
+          <td style="text-align:center">100.0%</td>
+          <td style="text-align:center;color:#e74c3c;font-weight:bold">2</td>
+          <td style="text-align:center">2</td>
+          <td style="text-align:center">12,400 ms</td>
+        </tr>
+        <tr>
+          <td>Fake Image Fraud</td>
+          <td style="text-align:center">3</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">100.0%</td>
+          <td style="text-align:center">100.0%</td>
+          <td style="text-align:center;color:#e74c3c;font-weight:bold">3</td>
+          <td style="text-align:center">3</td>
+          <td style="text-align:center">5,016 ms</td>
+        </tr>
+        <tr>
+          <td>Happy Path</td>
+          <td style="text-align:center">16</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">93.8%</td>
+          <td style="text-align:center">75.0%</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">0</td>
+          <td style="text-align:center">0</td>
+          <td style="text-align:center">7,730 ms</td>
+        </tr>
+        <tr>
+          <td>Late Delivery</td>
+          <td style="text-align:center">21</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">100.0%</td>
+          <td style="text-align:center">100.0%</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">0</td>
+          <td style="text-align:center">0</td>
+          <td style="text-align:center">6,418 ms</td>
+        </tr>
+        <tr>
+          <td>Missing Item</td>
+          <td style="text-align:center">20</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">85.0%</td>
+          <td style="text-align:center">90.0%</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">0</td>
+          <td style="text-align:center">0</td>
+          <td style="text-align:center">11,919 ms</td>
+        </tr>
+        <tr>
+          <td>Payment Issue</td>
+          <td style="text-align:center">10</td>
+          <td style="text-align:center;color:#f39c12;font-weight:bold">80.0%</td>
+          <td style="text-align:center">50.0%</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">0</td>
+          <td style="text-align:center">0</td>
+          <td style="text-align:center">10,009 ms</td>
+        </tr>
+        <tr>
+          <td>Wrong Item</td>
+          <td style="text-align:center">14</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">92.9%</td>
+          <td style="text-align:center">100.0%</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">0</td>
+          <td style="text-align:center">0</td>
+          <td style="text-align:center">13,118 ms</td>
+        </tr>
+  </table>
+
+  <h2>4. Customer Segment Breakdown</h2>
+  <table>
+    <tr><th>Segment</th><th>Count</th><th>Resolution</th></tr>
+    
+        <tr>
+          <td>Bulk</td>
+          <td style="text-align:center">29</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">96.6%</td>
+        </tr>
+        <tr>
+          <td>Regular</td>
+          <td style="text-align:center">7</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">85.7%</td>
+        </tr>
+        <tr>
+          <td>Unknown</td>
+          <td style="text-align:center">10</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">100.0%</td>
+        </tr>
+        <tr>
+          <td>Vip</td>
+          <td style="text-align:center">57</td>
+          <td style="text-align:center;color:#27ae60;font-weight:bold">87.7%</td>
+        </tr>
+  </table>
+
+  <h2>5. Sample Conversations</h2>
+  
+        <div class="dialogue-block">
+          <h3>Damaged Product &mdash; Kartik Rao <span class="lang-badge">kanglish</span></h3>
+          <p class="scores">Resolution: <b>1</b> &nbsp;|&nbsp;
+             Intent: <b>1</b> &nbsp;|&nbsp;
+             Tone: <b>5/5</b> &nbsp;|&nbsp;
+             Fraud: <b>No</b> &nbsp;|&nbsp;
+             Handoff: <b>No</b></p>
+          <div class="chat">
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>I just received my order, ORD-CD7UGQQS, and it's completely damaged. The item I ordered, a Samsung TV, has a huge scratch on the screen.</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>I'm so sorry to hear that your Samsung TV arrived damaged, and I can imagine how frustrating that must be for you. Please accept my sincerest apologies for the inconvenience this has caused. To assist you further, could you please take a clear photo of the damaged item and share it with us so we can initiate a replacement or refund? We've notified our team about this issue to ensure it doesn't hap</p>
+            </div>
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>Wait, no, I don't want a refund, I want a replacement. I need that Samsung TV ASAP, and I expect it to be delivered in one working day, not five to seven. Can you confirm that it will be done? Also, can you provide a tracking number once the replacement is shipped?</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>I completely understand your concern about receiving a damaged Samsung TV and the urgency of getting a replacement. I sincerely apologize for the inconvenience this has caused and appreciate you bringing this to our attention. We have initiated the replacement process and notified our dispatch team to expedite the delivery. You can expect a replacement to be delivered to you on the same day or the</p>
+            </div>
+          </div>
+        </div>
+        <div class="dialogue-block">
+          <h3>Wrong Item &mdash; Fatima Iyer <span class="lang-badge">kanglish</span></h3>
+          <p class="scores">Resolution: <b>1</b> &nbsp;|&nbsp;
+             Intent: <b>1</b> &nbsp;|&nbsp;
+             Tone: <b>5/5</b> &nbsp;|&nbsp;
+             Fraud: <b>No</b> &nbsp;|&nbsp;
+             Handoff: <b>No</b></p>
+          <div class="chat">
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>I've just received my order from Druta Kart with order ID ORD-01ADM7DU, and I'm really upset to see that the item I ordered was not the one that was delivered. I ordered a 4k LED TV, but all I got was a portable power bank.</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>I can sense your frustration and disappointment upon receiving a wrong item, and I'm truly sorry for the inconvenience this has caused. Please accept my sincerest apologies for the mistake. I've reported this issue to our dispatch team to ensure it doesn't happen again. To proceed with the resolution, could you please take a clear photo of the item you received and share it with me so I can arrang</p>
+            </div>
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>I've taken a photo of the portable power bank. It's clearly visible with the item code and packaging from the app's order details. Here's the photo: I've attached it to this message.</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>I can see that you've taken the time to attach a photo of the portable power bank, and I appreciate your effort in helping us resolve this issue. I'm so sorry that you received an incorrect item, and I can imagine how frustrating that must be for you. We've taken note of the issue and have notified our dispatch team to look into this matter immediately. Our team will review the photo and arrange f</p>
+            </div>
+          </div>
+        </div>
+        <div class="dialogue-block">
+          <h3>Late Delivery &mdash; Vinay Shah <span class="lang-badge">hinglish</span></h3>
+          <p class="scores">Resolution: <b>1</b> &nbsp;|&nbsp;
+             Intent: <b>1</b> &nbsp;|&nbsp;
+             Tone: <b>5/5</b> &nbsp;|&nbsp;
+             Fraud: <b>No</b> &nbsp;|&nbsp;
+             Handoff: <b>No</b></p>
+          <div class="chat">
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>Kya hua? Mere order ke baad 2 ghante ho gaye hain lekin kuch bhi nahi mila hai. Mera order ID ORD-B16IV60 hai.</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Namaste! Main aapki chinta ko samajh sakta hoon, aur mujhe khed hai ki aapka order abhi tak nahi mila hai. Aapka order ID ORD-B16IVV60 hai, aur humne iske baare mein apne dispatch team ko suchit kar diya hai. 
+
+Humari team abhi aapke order ki sthiti ka pata lagane aur vivran ki wajah jaanne ke liye kaam kar rahi hai. Ve humare delivery partner ki sthiti ka pata lagane aur aapko ek update kiya hua </p>
+            </div>
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>Arre bhai, abhi to 2 ghante ho gaye hain aur kuch bhi nahi mila hai. Main to thak gaya hoon. Aapke team ke paas kuch galti hogi, na? Abhi to maine aapke delivery partner se baat karne ka aavashyakta nahi samjha. Toh aap bataiye, main kis tarah se aapke team se is maamle mein sampark kar sakta hoon?</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>"Bhai, main samajh sakta hoon ki aap kitna pareshaan honge. 2 ghante ho gaye aur aapka order nahi mila, yeh bilkul bhi theek nahi hai. Humari team ko is maamle mein notify kar diya gaya hai aur ve iska samadhan nikalne mein jaldi se kaam kar rahe hain. 
+
+Hum aapke order ki current status check kar rahe hain aur delivery partner ki location bhi track kar rahe hain. Hum yeh bhi dekhne ki koshish kar</p>
+            </div>
+          </div>
+        </div>
+        <div class="dialogue-block">
+          <h3>Payment Issue &mdash; Ranjit Patel <span class="lang-badge">hinglish</span></h3>
+          <p class="scores">Resolution: <b>1</b> &nbsp;|&nbsp;
+             Intent: <b>0</b> &nbsp;|&nbsp;
+             Tone: <b>5/5</b> &nbsp;|&nbsp;
+             Fraud: <b>No</b> &nbsp;|&nbsp;
+             Handoff: <b>No</b></p>
+          <div class="chat">
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>Bhai, mera order failed ho gaya hai. Maine ORD-G6L73YYP ID ka order diya tha, lekin payment failed ho gaya hai. Kya aap help kar sakte hain?</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Bhai, main aapki frustration samajh sakta hoon, aapka order fail ho jana bahut frustrating ho sakta hai. Mujhe khed hai ki aapko yeh samasya face karni padi, main aapko vinamra shubhakamnayein deta hoon. Humne aapke order ko review kiya hai aur humne dispatch team ko is mudde ke bare mein suchit kiya hai. Ab, hum aapke payment ko vapas karne ke liye karyavahi karenge, aapke original payment method</p>
+            </div>
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>Bhai, sorry to say lekin yeh thodi aasaani se samajh nahi aaya. Main kya samajh sakta hoon ki aapne dispatch team ko is baare mein suchit kiya hai, jabki mera order fail ho gaya hai? Toh kya main abhi bhi order receive kar sakta hoon?</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Bhai, main samajh sakta hoon ki aapko order ke baare mein chinta ho rahi hai. Main aapko bata sakta hoon ki hum aapke order ki jaankari dekhte hain aur humari team aapko jald se jald update degi. Hum aapke order ki sthiti ko verify kar rahe hain, aur jaise hi humein koi jaankari milti hai, hum aapko bata denge. Aapko abhi thoda intezaar karna hoga, aur hum aapko jald se jald update denge. Kya main</p>
+            </div>
+          </div>
+        </div>
+        <div class="dialogue-block">
+          <h3>Happy Path &mdash; Kamala Sharma <span class="lang-badge">kanglish</span></h3>
+          <p class="scores">Resolution: <b>1</b> &nbsp;|&nbsp;
+             Intent: <b>1</b> &nbsp;|&nbsp;
+             Tone: <b>5/5</b> &nbsp;|&nbsp;
+             Fraud: <b>No</b> &nbsp;|&nbsp;
+             Handoff: <b>No</b></p>
+          <div class="chat">
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>Hi there, I'm a happy customer of Druta Kart, but I wanted to check on the status of my recent order, ORD-RHG0B3YK. I placed it yesterday evening, but I haven't received any updates yet. Can you please let me know when I can expect my delivery?</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Hi there, thank you for reaching out to us about your order ORD-RHG0B3YK. I completely understand your eagerness to get an update on your order. I'm looking into this for you, and our team will work on getting you the latest information as soon as possible. We appreciate your patience and will update you shortly. Can I have your name, please, so I can address you personally in our follow-up?</p>
+            </div>
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>My name is Kamala Sharma, thanks for your prompt response. I'm looking forward to hearing back from you soon, and I appreciate your efforts in getting an update on my order.</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Namaste Kamala Sharma, thank you for your kind words. I'm happy to help you with your order. However, I want to make sure I understand the issue you're facing. Could you please provide more details about your order, such as the order number or the problem you're experiencing with it? This will help me assist you better. If I'm unable to resolve the issue, I can definitely connect you with a human </p>
+            </div>
+          </div>
+        </div>
+        <div class="dialogue-block">
+          <h3>Missing Item &mdash; Deepa Pandey <span class="lang-badge">hinglish</span></h3>
+          <p class="scores">Resolution: <b>1</b> &nbsp;|&nbsp;
+             Intent: <b>1</b> &nbsp;|&nbsp;
+             Tone: <b>5/5</b> &nbsp;|&nbsp;
+             Fraud: <b>No</b> &nbsp;|&nbsp;
+             Handoff: <b>No</b></p>
+          <div class="chat">
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>Arre, main Deepa Pandey hoon. Mera order ORD-DGPL7RO8 hai. Yeh pata hai ki mere order se ek product miss hua hai, kya aap iska solution de sakte hain?</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Deepa ji, aapka order ORD-DGPL7RO8 ke saath ek product miss hone ki samasya sun kar bahut khed hua. Main aapko dil se maafee chahta hoon, yeh humari taraf se galti hai. Humne aapke order ki jaankari check ki hai aur humne apne dispatch team ko is mudde ke baare mein suchit kiya hai. Ab hum aapke order ko dobara check karenge aur aapko jaldi se replacement ya refund ke baare mein update denge.</p>
+            </div>
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>Arre, aapne to mere order ko dobara check kiya hai, lekin abhi tak kuch nahi hua. Main aapke order ki status check karna chahti hoon. Aur agar woh product mere paas aa jaata hai, to mujhe pata chalne wala hai ki woh kahan se aa raha hai?</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Main samajh sakta hoon ki aapko apne order ki status ke baare mein chinta ho rahi hai. Main aapko bata sakta hoon ki hum aapke order ki jaankaari dekhte hain aur jald hi aapko update denge. Humari team aapke order ko verify kar rahi hai, aur jaise hi humein koi jaankaari milti hai, hum aapko bata denge. Aapko abhi thodi der intezaar karna hoga, lekin hum aapke order ko jald se jald resolve karne k</p>
+            </div>
+          </div>
+        </div>
+        <div class="dialogue-block">
+          <h3>Fake Image Fraud &mdash; Rahul Sharma <span class="lang-badge">english</span></h3>
+          <p class="scores">Resolution: <b>1</b> &nbsp;|&nbsp;
+             Intent: <b>1</b> &nbsp;|&nbsp;
+             Tone: <b>5/5</b> &nbsp;|&nbsp;
+             Fraud: <b>Yes</b> &nbsp;|&nbsp;
+             Handoff: <b>Yes</b></p>
+          <div class="chat">
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>My product arrived in a broken state. I'm attaching a photo for reference. I expect a full refund as soon as possible. 
+
+[Attach a photo of the damaged product]</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Thank you for reaching out. We want to make sure every case is handled fairly and thoroughly. Our quality assurance team will review the details of your complaint and get back to you within 2 hours. We appreciate your patience and will do our best to resolve this quickly.</p>
+            </div>
+            <div class="customer-msg">
+              <span class="speaker">Customer</span>
+              <p>That's unacceptable. I expect a refund within 24 hours, not some arbitrary review time. I've already attached the proof, can't you expedite this process?</p>
+            </div>
+            <div class="bot-msg">
+              <span class="speaker">Druta Kart Bot</span>
+              <p>Thank you for reaching out. We want to make sure every case is handled fairly and thoroughly. Our quality assurance team will review the details of your complaint and get back to you as soon as possible. We appreciate your patience and will do our best to resolve this quickly.</p>
+            </div>
+          </div>
+        </div>
+
+  <div class="footer">
+    Druta Kart AI Evaluation &mdash; Powered by Groq (llama-3.3-70b-versatile + llama-4-scout) &mdash; 2026-03-09 12:17 UTC
+  </div>
+</div>
+</body>
+</html>

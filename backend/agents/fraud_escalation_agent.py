@@ -60,12 +60,13 @@ def _log_fraud_flag(
 def run(state: dict) -> dict:
     """Handle a confirmed suspicious image submission.
 
-    Logs the fraud event and returns a polite escalation message.
+    Logs the fraud event, assembles proof for the human reviewer,
+    sets human_handoff=True, and returns a polite escalation message.
     Never accuses the customer directly.
 
     Args:
         state: AgentState dict with at least user_id, session_id,
-               image_path, image_validation_result.
+               image_path, image_validation_result, vision_reason.
 
     Returns:
         Partial AgentState update dict.
@@ -74,18 +75,35 @@ def run(state: dict) -> dict:
     session_id = state.get("session_id", "unknown")
     image_path = state.get("image_path", "")
     validation_result = state.get("image_validation_result", "suspicious")
+    vision_reason = state.get("vision_reason", "")
 
     reason = f"Image classified as: {validation_result}"
     _log_fraud_flag(user_id, session_id, reason, image_path)
 
+    # Collect customer messages as evidence
+    customer_messages: list[str] = []
+    for msg in state.get("messages", []):
+        role = getattr(msg, "type", None) or getattr(msg, "role", None)
+        if role in ("human", "user"):
+            customer_messages.append(getattr(msg, "content", str(msg)))
+
+    handoff_proof = {
+        "image_path": image_path,
+        "vision_reason": vision_reason,
+        "validation_result": validation_result,
+        "customer_messages": customer_messages,
+    }
+
     logger.warning(
-        "Fraud escalation triggered: user=%s session=%s result=%s",
-        user_id, session_id, validation_result,
+        "Fraud escalation → human handoff: user=%s session=%s result=%s reason=%s",
+        user_id, session_id, validation_result, vision_reason,
     )
 
     return {
         "response": _REVIEW_MESSAGE,
-        "resolved": False,
+        "resolved": True,          # conversation closed from customer side
         "fraud_flagged": True,
+        "human_handoff": True,     # flag for human agent to pick up
+        "handoff_proof": handoff_proof,
         "tools_called": state.get("tools_called", []) + ["fraud_escalation_agent"],
     }

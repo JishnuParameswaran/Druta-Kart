@@ -21,7 +21,6 @@ chromadb==0.5.23
 sentence-transformers==3.3.1
 
 # NLP
-lingua-language-detector==2.0.2
 transformers==4.45.2
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.5.1+cpu

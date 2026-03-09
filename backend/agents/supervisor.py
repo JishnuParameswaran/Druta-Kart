@@ -49,16 +49,22 @@ class AgentState(TypedDict):
     # Image validation
     image_path: Optional[str]
     image_validation_result: Optional[str]
+    vision_reason: Optional[str]        # Why Vision API classified the image (shown to customer)
 
     # Resolution
     resolved: bool
     resolution_type: Optional[str]
+    csat_score: Optional[int]           # Internally set to 5 on resolution
 
     # Retention
     offer_given: Optional[dict]
 
     # Fraud
     fraud_flagged: bool
+
+    # Human handoff (misidentification dispute escalation)
+    human_handoff: bool                 # True when escalated to human agent
+    handoff_proof: Optional[dict]       # {image_path, vision_reason, customer_messages}
 
     # Observability
     tools_called: List[str]
@@ -109,18 +115,38 @@ def detect_intent_node(state: AgentState) -> dict:
         llm = _get_llm()
         from langchain_core.messages import HumanMessage
         result = llm.invoke([HumanMessage(content=(
-            "Classify this customer support message into ONE category:\n"
-            "- complaint  (damaged item, missing item, wrong item, expired food)\n"
-            "- order_tracking  (where is my order, ETA, cancellation)\n"
-            "- delivery  (not delivered, wrong address, late delivery, damaged package, "
-            "missing items from delivery, delivery partner unreachable, refused delivery)\n"
-            "- payment  (payment failed, double charge, refund status)\n"
-            "- general  (anything else)\n\n"
+            "Classify this customer support message into ONE category.\n"
+            "The message may be in any Indian language (Hindi, Kannada, Tamil, Telugu, Bengali, Hinglish, Manglish, Kanglish, etc.) — classify by MEANING, not by language.\n\n"
+            "Categories:\n"
+            "- complaint  (customer RECEIVED the order but item is damaged, wrong item sent, missing item, expired food, quality issue)\n"
+            "- order_tracking  (asking where is my order, what is ETA, requesting cancellation — item NOT yet received)\n"
+            "- delivery  (not delivered at all, wrong address, delivery partner unreachable, refused delivery)\n"
+            "- late_delivery  (order is overdue, taking too long, delayed, still waiting, order hasn't arrived but expected, any word meaning 'delay' or 'late' about an order)\n"
+            "- payment  (payment failed, double charge, incorrect charge, refund status)\n"
+            "- general  (happy customer, thank you, compliment, general product question, store hours, greeting, anything else)\n\n"
+            "Critical rules:\n"
+            "- If customer RECEIVED the order but something is wrong with it → complaint\n"
+            "- Mentioning an order ID alone does NOT make it order_tracking — look at the actual problem\n"
+            "- If customer is waiting and order has not arrived yet, OR uses any word meaning delay/late/overdue → late_delivery\n"
+            "- Key delay words in Indian languages: ವಿಳಂಬ/ತಡ (Kannada), विलंब/देरी/नहीं आया (Hindi), தாமதம் (Tamil), ఆలస్యం (Telugu)\n"
+            "- If unsure between complaint and delivery → complaint\n\n"
+            "Examples (any language):\n"
+            "- 'ನನ್ನ ಆರ್ಡರ್ ತಡವಾಗಿದೆ' (Kannada: my order is late) → late_delivery\n"
+            "- 'ಸಮಯ ವಿಳಂಬ' or 'ವಿಳಂಬ' (Kannada: time delay / delay) → late_delivery\n"
+            "- 'ಆರ್ಡರ್ ಬಂದಿಲ್ಲ' (Kannada: order hasn't come) → late_delivery\n"
+            "- 'मेरा ऑर्डर अभी तक नहीं आया' (Hindi: order not arrived yet) → late_delivery\n"
+            "- 'order bahut late ho raha hai' (Hinglish: order is very late) → late_delivery\n"
+            "- 'wrong item received' → complaint\n"
+            "- 'item missing from my order' → complaint\n"
+            "- 'package is damaged' → complaint\n"
+            "- 'where is my order' → order_tracking\n"
+            "- 'payment failed but money deducted' → payment\n"
             f"Message: \"{user_message}\"\n\n"
             "Reply with ONLY the category word."
         ))])
-        intent = result.content.strip().lower().split()[0]
-        if intent not in ("complaint", "order_tracking", "delivery", "payment", "general"):
+        _tokens = result.content.strip().lower().split()
+        intent = _tokens[0] if _tokens else "general"
+        if intent not in ("complaint", "order_tracking", "delivery", "late_delivery", "payment", "general"):
             intent = "general"
         logger.info("Intent detected: %s for user=%s", intent, state.get("user_id"))
         return {"intent": intent}
@@ -134,8 +160,20 @@ def detect_intent_node(state: AgentState) -> dict:
 # ---------------------------------------------------------------------------
 
 def complaint_node(state: AgentState) -> dict:
-    from agents.complaint_agent import run
-    return run(state)
+    try:
+        from agents.complaint_agent import run
+        return run(state)
+    except Exception as exc:
+        logger.error("complaint_agent crashed: %s", exc)
+        language = state.get("language", "en-IN")
+        return {
+            "response": (
+                "We sincerely apologise for the difficulty with your complaint. "
+                "Our team has been alerted and will follow up with you shortly."
+            ),
+            "resolved": False,
+            "tools_called": state.get("tools_called", []),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -143,8 +181,19 @@ def complaint_node(state: AgentState) -> dict:
 # ---------------------------------------------------------------------------
 
 def order_node(state: AgentState) -> dict:
-    from agents.order_agent import run
-    return run(state)
+    try:
+        from agents.order_agent import run
+        return run(state)
+    except Exception as exc:
+        logger.error("order_agent crashed: %s", exc)
+        return {
+            "response": (
+                "I'm having trouble retrieving your order details right now. "
+                "Please try again in a moment or contact our support team."
+            ),
+            "resolved": False,
+            "tools_called": state.get("tools_called", []),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -152,8 +201,19 @@ def order_node(state: AgentState) -> dict:
 # ---------------------------------------------------------------------------
 
 def dispatch_node(state: AgentState) -> dict:
-    from agents.dispatch_agent import run
-    return run(state)
+    try:
+        from agents.dispatch_agent import run
+        return run(state)
+    except Exception as exc:
+        logger.error("dispatch_agent crashed: %s", exc)
+        return {
+            "response": (
+                "We're sorry for the delivery issue. Our dispatch team has been "
+                "alerted and will look into this immediately."
+            ),
+            "resolved": False,
+            "tools_called": state.get("tools_called", []),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -164,8 +224,12 @@ def retention_node(state: AgentState) -> dict:
     # Only run retention if the complaint was actually resolved
     if not state.get("resolved"):
         return {}
-    from agents.retention_agent import run
-    return run(state)
+    try:
+        from agents.retention_agent import run
+        return run(state)
+    except Exception as exc:
+        logger.error("retention_agent crashed: %s", exc)
+        return {}
 
 
 # ---------------------------------------------------------------------------
@@ -260,6 +324,8 @@ def _route_intent(state: AgentState) -> str:
         return "complaint"
     elif intent == "order_tracking":
         return "order"
+    elif intent == "late_delivery":
+        return "dispatch"
     elif intent == "delivery":
         return "dispatch"
     else:
@@ -372,10 +438,14 @@ def run(
         "order_id": order_id,
         "image_path": image_path,
         "image_validation_result": None,
+        "vision_reason": None,
         "resolved": False,
         "resolution_type": None,
+        "csat_score": None,
         "offer_given": None,
         "fraud_flagged": False,
+        "human_handoff": False,
+        "handoff_proof": None,
         "tools_called": [],
         "response": "",
         "hallucination_flagged": False,
@@ -383,6 +453,40 @@ def run(
 
     try:
         result = graph.invoke(initial_state)
+
+        # Repeated dispute after resolution: customer keeps messaging once bot has resolved
+        _messages = result.get("messages", [])
+        if len(_messages) >= 4 and result.get("resolved") is True:
+            try:
+                from agents.fraud_escalation_agent import run as _escalate
+                _fraud_result = _escalate({
+                    **initial_state,
+                    **result,
+                    "fraud_reason": "repeated_dispute_after_resolution",
+                })
+                result = {**result, **_fraud_result}
+                logger.warning(
+                    "Repeated dispute after resolution: user=%s session=%s messages=%d",
+                    user_id, session_id, len(_messages),
+                )
+            except Exception as _exc:
+                logger.error("Fraud escalation (repeated_dispute) failed: %s", _exc)
+
+            try:
+                from db.supabase_client import get_client
+                _summary = " | ".join(
+                    getattr(_m, "content", str(_m))[:120] for _m in _messages
+                )
+                get_client().table("security_events").insert({
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "event_type": "repeated_dispute_after_resolution",
+                    "summary": _summary,
+                    "message_count": len(_messages),
+                }).execute()
+            except Exception as _exc:
+                logger.warning("security_events logging failed: %s", _exc)
+
         return {
             "response": result.get("response", ""),
             "intent": result.get("intent", "general"),
@@ -393,9 +497,12 @@ def run(
             "fraud_flagged": result.get("fraud_flagged", False),
             "hallucination_flagged": result.get("hallucination_flagged", False),
             "tools_called": result.get("tools_called", []),
+            "human_handoff": result.get("human_handoff", False),
+            "csat_score": result.get("csat_score"),
+            "handoff_proof": result.get("handoff_proof"),
         }
     except Exception as exc:
-        logger.error("Supervisor graph.invoke failed: %s", exc)
+        logger.error("Supervisor graph.invoke failed: %s", exc, exc_info=True)
         return {
             "response": (
                 "I'm sorry, I encountered an issue processing your request. "

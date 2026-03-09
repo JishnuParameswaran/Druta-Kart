@@ -217,13 +217,14 @@ def run(state: dict) -> dict:
 
     update: dict = {
         "image_validation_result": classification,
+        "vision_reason": vision.get("reason", ""),   # reason from Vision API, used by complaint_agent
         "tools_called": tools_called,
     }
 
     if classification == REAL_DAMAGE:
-        update["resolved"] = False  # complaint_agent continues
+        update["resolved"] = False  # complaint_agent continues to resolution
     else:
-        update["response"] = _CUSTOMER_MESSAGES[classification]
+        # Do NOT set response here — complaint_agent will build a richer message using the reason
         update["resolved"] = False
 
     return update

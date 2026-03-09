@@ -88,7 +88,8 @@ _session_image_counts: dict[str, int] = {}
 # Matches patterns like: ORD123456, ORD-ABC123, #ABC123XY
 _ORDER_RE = re.compile(r"\b(ORD-?[A-Z0-9]{4,}|#[A-Z0-9]{6,})\b", re.IGNORECASE)
 
-_ENGLISH_CODES = {"en-IN", "en-US", "en-GB", "en"}
+# Code-mixed variants understood natively by the LLM — no Sarvam translation needed
+_ENGLISH_CODES = {"en-IN", "en-US", "en-GB", "en", "hinglish", "kanglish", "manglish"}
 
 # ---------------------------------------------------------------------------
 # Pydantic models
@@ -113,6 +114,9 @@ class ChatResponse(BaseModel):
     hallucination_flagged: bool
     tools_called: list
     latency_ms: float
+    human_handoff: bool = False
+    csat_score: Optional[int] = None
+    handoff_proof: Optional[dict] = None
 
 
 class ImageUploadResponse(BaseModel):
@@ -364,6 +368,9 @@ async def chat(request: Request, body: ChatRequest):
         hallucination_flagged=result.get("hallucination_flagged", False),
         tools_called=result.get("tools_called", []),
         latency_ms=latency_ms,
+        human_handoff=result.get("human_handoff", False),
+        csat_score=result.get("csat_score"),
+        handoff_proof=result.get("handoff_proof"),
     )
 
 

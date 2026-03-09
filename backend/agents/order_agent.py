@@ -62,11 +62,20 @@ def _build_tracking_response(order: dict, user_message: str, language: str) -> s
             f"Tracking URL: {order.get('tracking_url', 'N/A')}"
         )
 
+        is_stub = order.get("_stub", False)
+        stub_note = (
+            "IMPORTANT: Our system is temporarily unable to fetch live order status. "
+            "Do NOT state a specific status. Say you are looking into the order and "
+            "the team will update them shortly. "
+        ) if is_stub else ""
+
         prompt = (
             f"Customer asked: \"{user_message}\"\n\n"
             f"Order details:\n{order_info}\n\n"
+            f"{stub_note}"
             f"Respond in a warm, concise way in the customer's language ({language}). "
-            f"Give the ETA and status clearly. If there is a tracking URL, mention it. "
+            f"If status is available and confirmed, give it clearly. "
+            f"If there is a tracking URL, mention it. "
             f"Do NOT invent any information not present in the order details above."
         )
 
@@ -86,12 +95,28 @@ def _build_tracking_response(order: dict, user_message: str, language: str) -> s
         )
 
 
-def _build_not_found_response(order_id: str, user_message: str) -> str:
-    return (
-        f"I was unable to find order {order_id} linked to your account. "
-        f"Please double-check the order ID and try again. If the issue persists, "
-        f"our team will be happy to investigate further."
-    )
+def _build_not_found_response(order_id: str, user_message: str, language: str = "en-IN") -> str:
+    try:
+        llm = _get_llm()
+        from langchain_core.messages import HumanMessage, SystemMessage
+        result = llm.invoke([
+            SystemMessage(content=_get_system_prompt()),
+            HumanMessage(content=(
+                f"Customer message: \"{user_message}\"\n"
+                f"Order ID provided: {order_id}\n"
+                f"We could not locate this order in our system right now. "
+                f"Apologize warmly and empathetically. Assure the customer you are escalating "
+                f"this to the team for manual investigation. Ask them to also check their "
+                f"confirmation email or the Druta Kart app. Respond in {language}. Keep it brief."
+            )),
+        ])
+        return result.content.strip()
+    except Exception as exc:
+        logger.error("_build_not_found_response LLM failed: %s", exc)
+        return (
+            f"I'm sorry, I was unable to locate order {order_id} at the moment. "
+            f"Our team will investigate and get back to you shortly."
+        )
 
 
 def _build_general_order_response(user_message: str, language: str) -> str:
@@ -171,7 +196,7 @@ def run(state: dict) -> dict:
 
     if not order.get("found"):
         return {
-            "response": _build_not_found_response(order_id, user_message),
+            "response": _build_not_found_response(order_id, user_message, language),
             "resolved": False,
             "tools_called": tools_called,
         }
