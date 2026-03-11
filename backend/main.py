@@ -117,6 +117,9 @@ class ChatResponse(BaseModel):
     human_handoff: bool = False
     csat_score: Optional[int] = None
     handoff_proof: Optional[dict] = None
+    agent_used: Optional[str] = None
+    rag_used: bool = False
+    image_validation_result: Optional[str] = None
 
 
 class ImageUploadResponse(BaseModel):
@@ -261,12 +264,12 @@ def _process_message(
     start = time.perf_counter()
 
     # ── Input safety: sanitize → injection check → red-team check ─────────────
-    from security.safety_layer import run_input_safety, run_output_safety
+    from security.safety_layer import run_input_safety, run_output_safety, get_security_alert_message
     safety = run_input_safety(raw_message, user_id, session_id)
     if not safety["safe"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Request blocked: {safety['blocked_reason']}",
+            detail=get_security_alert_message(safety["blocked_reason"]),
         )
     raw_message = safety["cleaned_text"]
     # ── End input safety ───────────────────────────────────────────────────────
@@ -371,6 +374,9 @@ async def chat(request: Request, body: ChatRequest):
         human_handoff=result.get("human_handoff", False),
         csat_score=result.get("csat_score"),
         handoff_proof=result.get("handoff_proof"),
+        agent_used=result.get("agent_used"),
+        rag_used=result.get("rag_used", False),
+        image_validation_result=result.get("image_validation_result"),
     )
 
 

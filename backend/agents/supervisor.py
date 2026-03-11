@@ -68,6 +68,8 @@ class AgentState(TypedDict):
 
     # Observability
     tools_called: List[str]
+    agent_used: Optional[str]       # Which specialist agent handled this turn
+    rag_used: bool                  # Whether RAG knowledge base was queried
     response: str
     hallucination_flagged: bool
 
@@ -162,10 +164,11 @@ def detect_intent_node(state: AgentState) -> dict:
 def complaint_node(state: AgentState) -> dict:
     try:
         from agents.complaint_agent import run
-        return run(state)
+        result = run(state)
+        result["agent_used"] = "complaint_agent"
+        return result
     except Exception as exc:
         logger.error("complaint_agent crashed: %s", exc)
-        language = state.get("language", "en-IN")
         return {
             "response": (
                 "We sincerely apologise for the difficulty with your complaint. "
@@ -173,6 +176,7 @@ def complaint_node(state: AgentState) -> dict:
             ),
             "resolved": False,
             "tools_called": state.get("tools_called", []),
+            "agent_used": "complaint_agent",
         }
 
 
@@ -183,7 +187,9 @@ def complaint_node(state: AgentState) -> dict:
 def order_node(state: AgentState) -> dict:
     try:
         from agents.order_agent import run
-        return run(state)
+        result = run(state)
+        result["agent_used"] = "order_agent"
+        return result
     except Exception as exc:
         logger.error("order_agent crashed: %s", exc)
         return {
@@ -193,6 +199,7 @@ def order_node(state: AgentState) -> dict:
             ),
             "resolved": False,
             "tools_called": state.get("tools_called", []),
+            "agent_used": "order_agent",
         }
 
 
@@ -203,7 +210,9 @@ def order_node(state: AgentState) -> dict:
 def dispatch_node(state: AgentState) -> dict:
     try:
         from agents.dispatch_agent import run
-        return run(state)
+        result = run(state)
+        result["agent_used"] = "dispatch_agent"
+        return result
     except Exception as exc:
         logger.error("dispatch_agent crashed: %s", exc)
         return {
@@ -213,6 +222,7 @@ def dispatch_node(state: AgentState) -> dict:
             ),
             "resolved": False,
             "tools_called": state.get("tools_called", []),
+            "agent_used": "dispatch_agent",
         }
 
 
@@ -254,6 +264,7 @@ def general_node(state: AgentState) -> dict:
         return {
             "response": result.content.strip(),
             "resolved": True,
+            "agent_used": "general",
         }
     except Exception as exc:
         logger.error("General node failed: %s", exc)
@@ -263,6 +274,7 @@ def general_node(state: AgentState) -> dict:
                 "How can I help you today?"
             ),
             "resolved": False,
+            "agent_used": "general",
         }
 
 
@@ -447,6 +459,8 @@ def run(
         "human_handoff": False,
         "handoff_proof": None,
         "tools_called": [],
+        "agent_used": None,
+        "rag_used": False,
         "response": "",
         "hallucination_flagged": False,
     }
@@ -500,6 +514,9 @@ def run(
             "human_handoff": result.get("human_handoff", False),
             "csat_score": result.get("csat_score"),
             "handoff_proof": result.get("handoff_proof"),
+            "agent_used": result.get("agent_used"),
+            "rag_used": "rag_search" in result.get("tools_called", []),
+            "image_validation_result": result.get("image_validation_result"),
         }
     except Exception as exc:
         logger.error("Supervisor graph.invoke failed: %s", exc, exc_info=True)

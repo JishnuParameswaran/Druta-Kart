@@ -409,6 +409,7 @@ def run(state: dict) -> dict:
     policy_context = _query_policy(
         f"{complaint_type} product refund replacement policy"
     )
+    tools_called.append("rag_search")  # Always mark RAG queried (Option B tracking)
 
     # Step 6 — Resolve complaint
     response, resolution_type, new_tools = _resolve_complaint(

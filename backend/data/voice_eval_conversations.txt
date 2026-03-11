@@ -1,0 +1,74 @@
+DRUTA KART — VOICE AI-TO-AI EVALUATION (2026-03-11)
+5 conversations: English · Hindi · Malayalam · Tamil · Hinglish
+================================================================================
+
+SYSTEM STACK
+----------------------------------------
+Simulator    : Groq llama-3.1-8b-instant
+Judge        : Groq llama-3.3-70b-versatile
+STT          : Groq whisper-large-v3
+Translation  : Sarvam mayura:v1
+TTS          : Sarvam bulbul:v1
+
+VOICE PIPELINE
+----------------------------------------
+Customer text → Sarvam TTS → WAV → /voice endpoint → Whisper STT → LLM → Sarvam TTS → audio_base64
+
+Total WAV sent    : 2979.8 KB
+Total WAV received: 4203.8 KB
+Transcription acc : avg=0.62
+Audio responses   : 3/5
+
+================================================================================
+
+[001] Priya Sharma | late_delivery | english (en-IN)
+  Scores → intent=0 resolved=0 tone=5/5 lang=1 halluc=0
+  Voice  → trans_acc=0.95 audio=yes lang_voice=yes
+  T1 original : I've been waiting for over an hour and my order ORD-VOICE-EN1 still hasn't arrived. Can you please help me track its sta
+  T1 whisper  : I have been waiting for over an hour and my order ORD and one still hasn't arrived. Can you please help me track its sta (acc=0.93)
+  T1 tts      : ✅ 319,532B → bot audio ✅ 1,131,052B
+  T1 bot text : I'm so sorry to hear that you've been waiting for over an hour and your order hasn't arrived yet. I can imagine how frus
+  T2 original : My order ID is ORD-VOICE-EN1. Can you please check the status of this order and let me know if there was an issue with t
+  T2 whisper  : My order ID is ORDVOICEN1. Can you please check the status of this order and let me know if there was an issue with the  (acc=0.98)
+  T2 tts      : ✅ 364,588B → bot audio ✅ 1,106,988B
+  T2 bot text : I'm so sorry that you're having to wait for an update on your order. I completely understand how frustrating that can be
+
+[002] Rahul Verma | damaged_product | hindi (hi-IN)
+  Scores → intent=0 resolved=0 tone=2/5 lang=0 halluc=0
+  Voice  → trans_acc=0.92 audio=no lang_voice=no
+  T1 original : मैं ड्रूटा कार्ट के ग्राहक हूँ और मेरा ऑर्डर ID है ORD-VOICE-HI2। मुझे हाल ही में एक बॉक्स का ऑर्डर मिला था, लेकिन जब मै
+  T1 whisper  : मैं डूटा कार्ट के ग्राहक हूँ और मेरा ओर्डर आईडी है ORDVOICEHI2. मुझे हाल ही में एक बॉक्स का ओर्डर मिला था, लेकिन जब मैंन (acc=0.93)
+  T1 tts      : ✅ 586,284B → bot audio ✅ 252,972B
+  T1 bot text : I'm sorry, I encountered an issue processing your request. Please try again or contact our support team.
+  T2 original : क्या आप इस बारे में कुछ कहना चाहते हैं? मेरा ऑर्डर ORD-VOICE-HI2 है, और मैं चाहता हूँ कि आप इस समस्या का समाधान करें।
+  T2 whisper  : क्या आप इस बारे में कुछ कहना चाहते हैं? मेरा order ord voi cehi2 है और मैं चाहता हूँ कि आप इस समस्या का समाधान करें. (acc=0.93)
+  T2 tts      : ✅ 355,372B → bot audio ❌ 0B
+  T2 bot text : नमस्ते! मैं आपकी समस्या का समाधान करने में मदद करना चाहता हूँ। लेकिन मुझे आपकी मदद करने के लिए आपके ऑर्डर आईडी की जरूरत 
+  T3 original : मैंने आपको पहले ही बताया है कि मेरा ऑर्डर ID ORD-VOICE-HI2 है। अब मेरी समस्या का समाधान कीजिये। मेरा बॉक्स खराब हो गया ह
+  T3 whisper  : मैंने आपको पहले ही बताया है कि मेरा order IDORD VOI CEHI2 है. अब मेरी समस्या का समाधान कीजिए. मेरा box खराब हो गया है और (acc=0.90)
+  T3 tts      : ✅ 485,420B → bot audio ✅ 252,972B
+  T3 bot text : I'm sorry, I encountered an issue processing your request. Please try again or contact our support team.
+
+[003] Anjali Nair | wrong_item | malayalam (ml-IN)
+  Scores → intent=1 resolved=1 tone=5/5 lang=0 halluc=0
+  Voice  → trans_acc=0.14 audio=yes lang_voice=no
+  T1 original : ഞാൻ ഒരു ഇഷ്യൂ വിവരിക്കാൻ വരുന്നു. ഞാൻ ഡ്രൂട്ട കാർട്ടിൽ നിന്ന് ORD-VOICE-ML3 ഓർഡർ ചെയ്തിട്ടുണ്ട്. ആ ഓർഡറി
+  T1 whisper  : ਨੈ ਰੀ ਸੁ ਵੀ ਵੀ ਵੀਰੀ ਕੇਨ ਵੇਰੁ ਨੂ. ਨੈ ਰੂਟ ਕਾਟੁਂ ਨੀ ਨੀ ਨੀ ਓ ਰਡੀ, ਵੀ ਓ ਈ, ਸੀ ਎ਂ, ਎ਲ ਤ੍ਰੀ ਓਡਰ ਚੇਤੁਂਦੁ. ਆ ਓਡਰੀ, (acc=0.14)
+  T1 tts      : ✅ 282,668B → bot audio ✅ 820,268B
+  T1 bot text : ਜੀ ਆਪਜੀ, ਮੈਂ ਆਪਜੀ ਦੀ ਸਮੱਸਿਆ ਸਮਝਦਾ ਹਾਂ ਅਤੇ ਗਲਤ ਆਈਟਮ ਪ੍ਰਾਪਤ ਕਰਨ 'ਤੇ ਮੁਆਫੀ ਮੰਗਦਾ ਹਾਂ। ਮੈਂ ਆਪਜੀ ਦੀ ਸ਼ਿਕਾਇਤ ਦਰਜ ਕਰ ਲਈ ਹੈ ਅਤੇ 
+
+[004] Kavitha Raman | payment_issue | tamil (ta-IN)
+  Scores → intent=0 resolved=1 tone=5/5 lang=1 halluc=0
+  Voice  → trans_acc=0.90 audio=yes lang_voice=no
+  T1 original : எனது ORD-VOICE-TA4 உள்ள கொடுக்கும் திட்டத்தில் கட்டணம் ஏற்றப்பட்டது போல் சொல்லாமல் எனக்கு பல தவறான செலவு பற்றிய நோய்க்கு
+  T1 whisper  : எனது O.R.D.B.O.I. C.E.D. A4 உள்ள குடுக்கும் திட்டத்தில் கட்டணம் ஏற்றப்பட்டது போல் சொல்லாமல் எனக்கு பல தவறான செலவு பற்றிய (acc=0.90)
+  T1 tts      : ✅ 303,660B → bot audio ✅ 740,396B
+  T1 bot text : வணக்கம், நாங்கள் உங்கள் சிக்கலை புரிந்து கொண்டோம் மற்றும் உங்களுக்கு ஏற்பட்ட அசௌகரியத்திற்கு மன்னிக்க வேண்டுகிறோம். தவறா
+
+[005] Arjun Singh | missing_item | hinglish (en-IN)
+  Scores → intent=1 resolved=1 tone=5/5 lang=1 halluc=0
+  Voice  → trans_acc=0.18 audio=no lang_voice=no
+  T1 original : Kya hua Druta Kart? Mere order me kuch miss hai. ORD-VOICE-HGL5 ke order ID ke sath, mere pas kuch products nahi mil rah
+  T1 whisper  : क्या हो द्रोटकार्ट, मेरे ओडर में कुछ मिस है, ओर डीवियो आईफ सी एजजिल 5 के ओडर आईडी के साथ मेरे पास कुछ प्रोडक्स नहीं मिल  (acc=0.18)
+  T1 tts      : ✅ 353,836B → bot audio ❌ 0B
+  T1 bot text : मुझे खेद है कि आपके ऑर्डर में कुछ मिस हो गया है, और आपको डीवियो आईफ सी एजजिल 5 के साथ कुछ प्रोडक्ट नहीं मिल रहे हैं। हमे

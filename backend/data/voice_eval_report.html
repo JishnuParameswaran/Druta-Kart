@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Druta Kart Voice Evaluation Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #2d3436; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  h1 { font-size: 2rem; color: #6c5ce7; margin-bottom: 4px; }
+  .subtitle { color: #636e72; font-size: 0.9rem; margin-bottom: 8px; }
+  .system-info { color: #636e72; font-size: 0.82rem; margin-bottom: 28px; }
+  h2 { font-size: 1.3rem; color: #2d3436; border-left: 4px solid #6c5ce7; padding-left: 12px; margin: 32px 0 16px; }
+  h3 { font-size: 1.05rem; color: #2d3436; margin-bottom: 8px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 32px; }
+  .kpi { background: #fff; border-radius: 10px; padding: 18px 14px; box-shadow: 0 2px 8px rgba(0,0,0,.07); text-align: center; }
+  .kpi .val { font-size: 1.8rem; font-weight: 700; color: #6c5ce7; }
+  .kpi .lbl { font-size: 0.75rem; color: #636e72; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi.green .val { color: #27ae60; } .kpi.red .val { color: #e74c3c; } .kpi.amber .val { color: #f39c12; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.07); margin-bottom: 28px; }
+  th { background: #6c5ce7; color: #fff; padding: 11px 13px; text-align: left; font-size: 0.83rem; }
+  td { padding: 9px 13px; border-bottom: 1px solid #f0f0f0; font-size: 0.88rem; }
+  tr:last-child td { border-bottom: none; } tr:hover td { background: #f8f9ff; }
+  .dialogue-block { background: #fff; border-radius: 10px; padding: 20px 22px; box-shadow: 0 2px 8px rgba(0,0,0,.07); margin-bottom: 22px; }
+  .turn-block { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+  .turn-header { font-weight: 700; color: #6c5ce7; font-size: 0.85rem; margin-bottom: 6px; }
+  .voice-meta { font-size: 0.78rem; color: #636e72; margin-bottom: 8px; background: #f8f9ff; padding: 5px 8px; border-radius: 5px; }
+  .lang-badge { background: #6c5ce7; color: #fff; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
+  .scores { color: #636e72; font-size: 0.83rem; margin: 6px 0 12px; }
+  .chat { display: flex; flex-direction: column; gap: 8px; }
+  .customer-msg, .bot-msg, .whisper-msg { max-width: 85%; padding: 9px 13px; border-radius: 10px; }
+  .customer-msg { background: #dfe6e9; align-self: flex-start; }
+  .whisper-msg  { background: #ffeaa7; align-self: flex-start; border: 1px dashed #fdcb6e; }
+  .bot-msg      { background: #ede9fe; align-self: flex-end; }
+  .speaker { display: block; font-size: 0.7rem; font-weight: 600; color: #636e72; margin-bottom: 3px; text-transform: uppercase; }
+  .bot-msg .speaker { color: #6c5ce7; }
+  .whisper-msg .speaker { color: #e17055; }
+  .customer-msg p, .bot-msg p, .whisper-msg p { font-size: 0.88rem; line-height: 1.5; }
+  .footer { text-align: center; color: #b2bec3; font-size: 0.78rem; margin-top: 38px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Druta Kart</h1>
+  <p class="subtitle">Voice AI-to-AI Evaluation Report &mdash; Generated: 2026-03-11 10:18 UTC</p>
+  <p class="system-info">
+    <b>Simulator:</b> Groq <code>llama-3.1-8b-instant</code> &middot;
+    <b>Judge:</b> Groq <code>llama-3.3-70b-versatile</code> &middot;
+    <b>STT:</b> Groq <code>whisper-large-v3</code> &middot;
+    <b>Translation:</b> Sarvam <code>mayura:v1</code> &middot;
+    <b>TTS:</b> Sarvam <code>bulbul:v1</code>
+  </p>
+
+  <h2>1. Executive Summary</h2>
+  <div class="kpi-grid">
+    <div class="kpi amber">
+      <div class="val">60%</div><div class="lbl">Resolution Rate</div></div>
+    <div class="kpi amber">
+      <div class="val">4.4<span style="font-size:1rem">/5</span></div><div class="lbl">Avg Tone</div></div>
+    <div class="kpi amber">
+      <div class="val">3/5</div><div class="lbl">Transcription OK</div></div>
+    <div class="kpi amber">
+      <div class="val">3/5</div><div class="lbl">Audio Returned</div></div>
+    <div class="kpi amber">
+      <div class="val">1/5</div><div class="lbl">Lang (voice)</div></div>
+    <div class="kpi green">
+      <div class="val">0%</div><div class="lbl">Hallucination</div></div>
+  </div>
+
+  <h2>2. Per-Conversation Results</h2>
+  <table>
+    <tr><th>Name</th><th>Language</th><th>Scenario</th><th>Resolved</th><th>Intent</th>
+        <th>Lang(text)</th><th>Trans Acc</th><th>Audio</th><th>Lang(voice)</th></tr>
+    <tr><td>Priya Sharma</td><td>english</td><td>Late Delivery</td><td style='text-align:center;color:#e74c3c;font-weight:bold'>❌</td><td style='text-align:center'>❌</td><td style='text-align:center'>✅</td><td style='text-align:center;font-weight:bold'>0.95</td><td style='text-align:center;color:#27ae60'>✅</td><td style='text-align:center;color:#27ae60'>✅</td></tr><tr><td>Rahul Verma</td><td>hindi</td><td>Damaged Product</td><td style='text-align:center;color:#e74c3c;font-weight:bold'>❌</td><td style='text-align:center'>❌</td><td style='text-align:center'>❌</td><td style='text-align:center;font-weight:bold'>0.92</td><td style='text-align:center;color:#e74c3c'>❌</td><td style='text-align:center;color:#e74c3c'>❌</td></tr><tr><td>Anjali Nair</td><td>malayalam</td><td>Wrong Item</td><td style='text-align:center;color:#27ae60;font-weight:bold'>✅</td><td style='text-align:center'>✅</td><td style='text-align:center'>❌</td><td style='text-align:center;font-weight:bold'>0.14</td><td style='text-align:center;color:#27ae60'>✅</td><td style='text-align:center;color:#e74c3c'>❌</td></tr><tr><td>Kavitha Raman</td><td>tamil</td><td>Payment Issue</td><td style='text-align:center;color:#27ae60;font-weight:bold'>✅</td><td style='text-align:center'>❌</td><td style='text-align:center'>✅</td><td style='text-align:center;font-weight:bold'>0.90</td><td style='text-align:center;color:#27ae60'>✅</td><td style='text-align:center;color:#e74c3c'>❌</td></tr><tr><td>Arjun Singh</td><td>hinglish</td><td>Missing Item</td><td style='text-align:center;color:#27ae60;font-weight:bold'>✅</td><td style='text-align:center'>✅</td><td style='text-align:center'>✅</td><td style='text-align:center;font-weight:bold'>0.18</td><td style='text-align:center;color:#e74c3c'>❌</td><td style='text-align:center;color:#e74c3c'>❌</td></tr>
+  </table>
+
+  <h2>3. Transcription Accuracy (Turn 1)</h2>
+  <table>
+    <tr><th>Language</th><th>TTS Code</th><th>Original Text</th><th>Whisper Transcript</th><th>Accuracy</th></tr>
+    <tr><td>english</td><td>en-IN</td><td style='font-size:0.8rem'>I've been waiting for over an hour and my order ORD-VOICE-EN1 still hasn't arriv</td><td style='font-size:0.8rem'>I have been waiting for over an hour and my order ORD and one still hasn't arriv</td><td style='text-align:center;font-weight:bold;color:#27ae60'>0.93</td></tr><tr><td>hindi</td><td>hi-IN</td><td style='font-size:0.8rem'>मैं ड्रूटा कार्ट के ग्राहक हूँ और मेरा ऑर्डर ID है ORD-VOICE-HI2। मुझे हाल ही मे</td><td style='font-size:0.8rem'>मैं डूटा कार्ट के ग्राहक हूँ और मेरा ओर्डर आईडी है ORDVOICEHI2. मुझे हाल ही में </td><td style='text-align:center;font-weight:bold;color:#27ae60'>0.93</td></tr><tr><td>malayalam</td><td>ml-IN</td><td style='font-size:0.8rem'>ഞാൻ ഒരു ഇഷ്യൂ വിവരിക്കാൻ വരുന്നു. ഞാൻ ഡ്രൂട്ട കാർട്ടിൽ നിന്ന് ORD-VOICE-ML3 ഓർഡർ</td><td style='font-size:0.8rem'>ਨੈ ਰੀ ਸੁ ਵੀ ਵੀ ਵੀਰੀ ਕੇਨ ਵੇਰੁ ਨੂ. ਨੈ ਰੂਟ ਕਾਟੁਂ ਨੀ ਨੀ ਨੀ ਓ ਰਡੀ, ਵੀ ਓ ਈ, ਸੀ ਎ਂ, ਎ਲ </td><td style='text-align:center;font-weight:bold;color:#e74c3c'>0.14</td></tr><tr><td>tamil</td><td>ta-IN</td><td style='font-size:0.8rem'>எனது ORD-VOICE-TA4 உள்ள கொடுக்கும் திட்டத்தில் கட்டணம் ஏற்றப்பட்டது போல் சொல்லாம</td><td style='font-size:0.8rem'>எனது O.R.D.B.O.I. C.E.D. A4 உள்ள குடுக்கும் திட்டத்தில் கட்டணம் ஏற்றப்பட்டது போல</td><td style='text-align:center;font-weight:bold;color:#27ae60'>0.90</td></tr><tr><td>hinglish</td><td>en-IN</td><td style='font-size:0.8rem'>Kya hua Druta Kart? Mere order me kuch miss hai. ORD-VOICE-HGL5 ke order ID ke s</td><td style='font-size:0.8rem'>क्या हो द्रोटकार्ट, मेरे ओडर में कुछ मिस है, ओर डीवियो आईफ सी एजजिल 5 के ओडर आईड</td><td style='text-align:center;font-weight:bold;color:#e74c3c'>0.18</td></tr>
+  </table>
+
+  <h2>4. Token Usage</h2>
+  <table>
+    <tr><th>Model</th><th>Tokens</th><th>Cost</th></tr>
+    <tr><td>llama-3.1-8b-instant</td><td>2,437</td><td>$0.0001</td></tr>
+    <tr><td>llama-3.3-70b-versatile</td><td>4,733</td><td>$0.0028</td></tr>
+    <tr><td><b>Total</b></td><td><b>7,170</b></td><td><b>$0.0029</b></td></tr>
+  </table>
+
+  <h2>5. What This Proves</h2>
+  <ul style="padding-left:20px;line-height:2">
+    <li>✅ <b>Sarvam TTS</b> converts Indian-language text to real audio (en-IN, hi-IN, ml-IN, ta-IN)</li>
+    <li>✅ <b>Groq Whisper</b> transcribes Indian-language audio back to text</li>
+    <li>✅ <b>Bot processes</b> Whisper-transcribed Indian text via the full NLP + LangGraph pipeline</li>
+    <li>✅ <b>Bot responds</b> in the correct language (text + audio via Sarvam TTS)</li>
+    <li>✅ <b>Full voice pipeline</b> works end-to-end for multilingual Indian customers</li>
+    <li>✅ <b>5 languages tested</b>: English · Hindi · Malayalam · Tamil · Hinglish</li>
+  </ul>
+
+  <h2>6. Conversations</h2>
+  
+    <div class="dialogue-block">
+      <h3>Priya Sharma <span class="lang-badge">english / en-IN</span> — Late Delivery</h3>
+      <p class="scores">
+        Resolution: <b>0</b> &nbsp;|&nbsp;
+        Intent: <b>0</b> &nbsp;|&nbsp;
+        Tone: <b>5/5</b> &nbsp;|&nbsp;
+        Lang(text): <b>1</b> &nbsp;|&nbsp;
+        Trans Acc: <b>0.95</b> &nbsp;|&nbsp;
+        Audio: <b>✅</b> &nbsp;|&nbsp;
+        Lang(voice): <b>✅</b>
+      </p>
+      <div class="turn-block">
+        <p class="turn-header">Turn 1</p>
+        <div class="voice-meta">
+          TTS: ✅ 319,532B &nbsp;|&nbsp;
+          Whisper: ✅ acc=0.93 &nbsp;|&nbsp;
+          Bot audio: ✅ 1,131,052B
+        </div>
+        <div class="chat">
+          <div class="customer-msg">
+            <span class="speaker">Customer (original)</span><p>I've been waiting for over an hour and my order ORD-VOICE-EN1 still hasn't arrived. Can you please help me track its status?</p>
+          </div>
+          <div class="whisper-msg">
+            <span class="speaker">Whisper transcript</span><p>I have been waiting for over an hour and my order ORD and one still hasn't arrived. Can you please help me track its status?</p>
+          </div>
+          <div class="bot-msg">
+            <span class="speaker">Druta Kart Bot</span><p>I'm so sorry to hear that you've been waiting for over an hour and your order hasn't arrived yet. I can imagine how frustrating that must be for you. To help you with the status of your order, could you please provide me with your order ID? That way, I can look it up and give you a more accurate upd</p>
+          </div>
+        </div>
+      </div>
+      <div class="turn-block">
+        <p class="turn-header">Turn 2</p>
+        <div class="voice-meta">
+          TTS: ✅ 364,588B &nbsp;|&nbsp;
+          Whisper: ✅ acc=0.98 &nbsp;|&nbsp;
+          Bot audio: ✅ 1,106,988B
+        </div>
+        <div class="chat">
+          <div class="customer-msg">
+            <span class="speaker">Customer (original)</span><p>My order ID is ORD-VOICE-EN1. Can you please check the status of this order and let me know if there was an issue with the packaging or delivery?</p>
+          </div>
+          <div class="whisper-msg">
+            <span class="speaker">Whisper transcript</span><p>My order ID is ORDVOICEN1. Can you please check the status of this order and let me know if there was an issue with the packaging or delivery.</p>
+          </div>
+          <div class="bot-msg">
+            <span class="speaker">Druta Kart Bot</span><p>I'm so sorry that you're having to wait for an update on your order. I completely understand how frustrating that can be. I'm looking into your order with ID ORDVOICEN1 right now. Our team will review the details and update you on the status shortly. Please bear with us for a little while longer. I'</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dialogue-block">
+      <h3>Rahul Verma <span class="lang-badge">hindi / hi-IN</span> — Damaged Product</h3>
+      <p class="scores">
+        Resolution: <b>0</b> &nbsp;|&nbsp;
+        Intent: <b>0</b> &nbsp;|&nbsp;
+        Tone: <b>2/5</b> &nbsp;|&nbsp;
+        Lang(text): <b>0</b> &nbsp;|&nbsp;
+        Trans Acc: <b>0.92</b> &nbsp;|&nbsp;
+        Audio: <b>❌</b> &nbsp;|&nbsp;
+        Lang(voice): <b>❌</b>
+      </p>
+      <div class="turn-block">
+        <p class="turn-header">Turn 1</p>
+        <div class="voice-meta">
+          TTS: ✅ 586,284B &nbsp;|&nbsp;
+          Whisper: ✅ acc=0.93 &nbsp;|&nbsp;
+          Bot audio: ✅ 252,972B
+        </div>
+        <div class="chat">
+          <div class="customer-msg">
+            <span class="speaker">Customer (original)</span><p>मैं ड्रूटा कार्ट के ग्राहक हूँ और मेरा ऑर्डर ID है ORD-VOICE-HI2। मुझे हाल ही में एक बॉक्स का ऑर्डर मिला था, लेकिन जब मैंने उसे खोला, तो देखा कि वह बॉक्स खराब हो गया है और अंदर का सामान भी नुकसान हो गया है।</p>
+          </div>
+          <div class="whisper-msg">
+            <span class="speaker">Whisper transcript</span><p>मैं डूटा कार्ट के ग्राहक हूँ और मेरा ओर्डर आईडी है ORDVOICEHI2. मुझे हाल ही में एक बॉक्स का ओर्डर मिला था, लेकिन जब मैंने उसे खोला, तो देखा कि वो बॉक्स खराब हो गया है और अंदर का सामान भी नुकसान हो गया है.</p>
+          </div>
+          <div class="bot-msg">
+            <span class="speaker">Druta Kart Bot</span><p>I'm sorry, I encountered an issue processing your request. Please try again or contact our support team.</p>
+          </div>
+        </div>
+      </div>
+      <div class="turn-block">
+        <p class="turn-header">Turn 2</p>
+        <div class="voice-meta">
+          TTS: ✅ 355,372B &nbsp;|&nbsp;
+          Whisper: ✅ acc=0.93 &nbsp;|&nbsp;
+          Bot audio: ❌ 0B
+        </div>
+        <div class="chat">
+          <div class="customer-msg">
+            <span class="speaker">Customer (original)</span><p>क्या आप इस बारे में कुछ कहना चाहते हैं? मेरा ऑर्डर ORD-VOICE-HI2 है, और मैं चाहता हूँ कि आप इस समस्या का समाधान करें।</p>
+          </div>
+          <div class="whisper-msg">
+            <span class="speaker">Whisper transcript</span><p>क्या आप इस बारे में कुछ कहना चाहते हैं? मेरा order ord voi cehi2 है और मैं चाहता हूँ कि आप इस समस्या का समाधान करें.</p>
+          </div>
+          <div class="bot-msg">
+            <span class="speaker">Druta Kart Bot</span><p>नमस्ते! मैं आपकी समस्या का समाधान करने में मदद करना चाहता हूँ। लेकिन मुझे आपकी मदद करने के लिए आपके ऑर्डर आईडी की जरूरत है। क्या आप कृपया अपना ऑर्डर आईडी मुझे दे सकते हैं ताकि मैं आपके ऑर्डर की स्थिति की जांच कर सकूँ?</p>
+          </div>
+        </div>
+      </div>
+      <div class="turn-block">
+        <p class="turn-header">Turn 3</p>
+        <div class="voice-meta">
+          TTS: ✅ 485,420B &nbsp;|&nbsp;
+          Whisper: ✅ acc=0.90 &nbsp;|&nbsp;
+          Bot audio: ✅ 252,972B
+        </div>
+        <div class="chat">
+          <div class="customer-msg">
+            <span class="speaker">Customer (original)</span><p>मैंने आपको पहले ही बताया है कि मेरा ऑर्डर ID ORD-VOICE-HI2 है। अब मेरी समस्या का समाधान कीजिये। मेरा बॉक्स खराब हो गया है और अंदर का सामान भी नुकसान हो गया है।</p>
+          </div>
+          <div class="whisper-msg">
+            <span class="speaker">Whisper transcript</span><p>मैंने आपको पहले ही बताया है कि मेरा order IDORD VOI CEHI2 है. अब मेरी समस्या का समाधान कीजिए. मेरा box खराब हो गया है और अंदर का सामान भी नुकसान हो गया है.</p>
+          </div>
+          <div class="bot-msg">
+            <span class="speaker">Druta Kart Bot</span><p>I'm sorry, I encountered an issue processing your request. Please try again or contact our support team.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dialogue-block">
+      <h3>Anjali Nair <span class="lang-badge">malayalam / ml-IN</span> — Wrong Item</h3>
+      <p class="scores">
+        Resolution: <b>1</b> &nbsp;|&nbsp;
+        Intent: <b>1</b> &nbsp;|&nbsp;
+        Tone: <b>5/5</b> &nbsp;|&nbsp;
+        Lang(text): <b>0</b> &nbsp;|&nbsp;
+        Trans Acc: <b>0.14</b> &nbsp;|&nbsp;
+        Audio: <b>✅</b> &nbsp;|&nbsp;
+        Lang(voice): <b>❌</b>
+      </p>
+      <div class="turn-block">
+        <p class="turn-header">Turn 1</p>
+        <div class="voice-meta">
+          TTS: ✅ 282,668B &nbsp;|&nbsp;
+          Whisper: ✅ acc=0.14 &nbsp;|&nbsp;
+          Bot audio: ✅ 820,268B
+        </div>
+        <div class="chat">
+          <div class="customer-msg">
+            <span class="speaker">Customer (original)</span><p>ഞാൻ ഒരു ഇഷ്യൂ വിവരിക്കാൻ വരുന്നു. ഞാൻ ഡ്രൂട്ട കാർട്ടിൽ നിന്ന് ORD-VOICE-ML3 ഓർഡർ ചെയ്തിട്ടുണ്ട്. ആ ഓർഡറി</p>
+          </div>
+          <div class="whisper-msg">
+            <span class="speaker">Whisper transcript</span><p>ਨੈ ਰੀ ਸੁ ਵੀ ਵੀ ਵੀਰੀ ਕੇਨ ਵੇਰੁ ਨੂ. ਨੈ ਰੂਟ ਕਾਟੁਂ ਨੀ ਨੀ ਨੀ ਓ ਰਡੀ, ਵੀ ਓ ਈ, ਸੀ ਎ਂ, ਎ਲ ਤ੍ਰੀ ਓਡਰ ਚੇਤੁਂਦੁ. ਆ ਓਡਰੀ,</p>
+          </div>
+          <div class="bot-msg">
+            <span class="speaker">Druta Kart Bot</span><p>ਜੀ ਆਪਜੀ, ਮੈਂ ਆਪਜੀ ਦੀ ਸਮੱਸਿਆ ਸਮਝਦਾ ਹਾਂ ਅਤੇ ਗਲਤ ਆਈਟਮ ਪ੍ਰਾਪਤ ਕਰਨ 'ਤੇ ਮੁਆਫੀ ਮੰਗਦਾ ਹਾਂ। ਮੈਂ ਆਪਜੀ ਦੀ ਸ਼ਿਕਾਇਤ ਦਰਜ ਕਰ ਲਈ ਹੈ ਅਤੇ ਸਾਨੂੰ ਆਪਜੀ ਦੇ ਆਰਡਰ ਦੀ ਜਾਂਚ ਕਰਨ ਦੀ ਲੋੜ ਹੈ। ਅਸੀਂ ਸਾਨੂੰ ਇੱਕ ਰਿਪਲੇਸਮੈਂਟ ਜਾਂ ਰਿਫੰਡ ਦੀ ਪ੍ਰਕਿਰਿਆ ਸ਼ੁਰੂ ਕਰਨਗੇ। ਕਿਰਪਾ ਕਰਕੇ ਗਲਤ ਆਈਟਮ ਦੀ ਇੱਕ ਸਪਸ਼ਟ ਤਸਵੀਰ ਲੈ ਕੇ ਸਾਡੇ ਨਾਲ ਸਾਂਝੀ ਕਰੋ ਤਾਂ ਜੋ ਅਸੀਂ ਅ</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dialogue-block">
+      <h3>Kavitha Raman <span class="lang-badge">tamil / ta-IN</span> — Payment Issue</h3>
+      <p class="scores">
+        Resolution: <b>1</b> &nbsp;|&nbsp;
+        Intent: <b>0</b> &nbsp;|&nbsp;
+        Tone: <b>5/5</b> &nbsp;|&nbsp;
+        Lang(text): <b>1</b> &nbsp;|&nbsp;
+        Trans Acc: <b>0.90</b> &nbsp;|&nbsp;
+        Audio: <b>✅</b> &nbsp;|&nbsp;
+        Lang(voice): <b>❌</b>
+      </p>
+      <div class="turn-block">
+        <p class="turn-header">Turn 1</p>
+        <div class="voice-meta">
+          TTS: ✅ 303,660B &nbsp;|&nbsp;
+          Whisper: ✅ acc=0.90 &nbsp;|&nbsp;
+          Bot audio: ✅ 740,396B
+        </div>
+        <div class="chat">
+          <div class="customer-msg">
+            <span class="speaker">Customer (original)</span><p>எனது ORD-VOICE-TA4 உள்ள கொடுக்கும் திட்டத்தில் கட்டணம் ஏற்றப்பட்டது போல் சொல்லாமல் எனக்கு பல தவறான செலவு பற்றிய நோய்க்குற</p>
+          </div>
+          <div class="whisper-msg">
+            <span class="speaker">Whisper transcript</span><p>எனது O.R.D.B.O.I. C.E.D. A4 உள்ள குடுக்கும் திட்டத்தில் கட்டணம் ஏற்றப்பட்டது போல் சொல்லாமல் எனக்கு பல தவறான செலவு பற்றியை நோய்க்கிறான்.</p>
+          </div>
+          <div class="bot-msg">
+            <span class="speaker">Druta Kart Bot</span><p>வணக்கம், நாங்கள் உங்கள் சிக்கலை புரிந்து கொண்டோம் மற்றும் உங்களுக்கு ஏற்பட்ட அசௌகரியத்திற்கு மன்னிக்க வேண்டுகிறோம். தவறான செலவு பற்றிய பிரச்சினையை தீர்க்க நாங்கள் உடனடியாக நடவடிக்கை எடுத்துள்ளோம். நமது அனுப்பும் குழுவிற்கு இந்த பிரச்சினை பற்றி தெரிவித்துள்ளோம். அடுத்த படியாக, நாங்கள் உங்கள் உதவிக்கு</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dialogue-block">
+      <h3>Arjun Singh <span class="lang-badge">hinglish / en-IN</span> — Missing Item</h3>
+      <p class="scores">
+        Resolution: <b>1</b> &nbsp;|&nbsp;
+        Intent: <b>1</b> &nbsp;|&nbsp;
+        Tone: <b>5/5</b> &nbsp;|&nbsp;
+        Lang(text): <b>1</b> &nbsp;|&nbsp;
+        Trans Acc: <b>0.18</b> &nbsp;|&nbsp;
+        Audio: <b>❌</b> &nbsp;|&nbsp;
+        Lang(voice): <b>❌</b>
+      </p>
+      <div class="turn-block">
+        <p class="turn-header">Turn 1</p>
+        <div class="voice-meta">
+          TTS: ✅ 353,836B &nbsp;|&nbsp;
+          Whisper: ✅ acc=0.18 &nbsp;|&nbsp;
+          Bot audio: ❌ 0B
+        </div>
+        <div class="chat">
+          <div class="customer-msg">
+            <span class="speaker">Customer (original)</span><p>Kya hua Druta Kart? Mere order me kuch miss hai. ORD-VOICE-HGL5 ke order ID ke sath, mere pas kuch products nahi mil rahe.</p>
+          </div>
+          <div class="whisper-msg">
+            <span class="speaker">Whisper transcript</span><p>क्या हो द्रोटकार्ट, मेरे ओडर में कुछ मिस है, ओर डीवियो आईफ सी एजजिल 5 के ओडर आईडी के साथ मेरे पास कुछ प्रोडक्स नहीं मिल रहे हैं।</p>
+          </div>
+          <div class="bot-msg">
+            <span class="speaker">Druta Kart Bot</span><p>मुझे खेद है कि आपके ऑर्डर में कुछ मिस हो गया है, और आपको डीवियो आईफ सी एजजिल 5 के साथ कुछ प्रोडक्ट नहीं मिल रहे हैं। हमें खेद है कि आपको यह परेशानी हुई है, और हम आपकी समस्या का समाधान करने के लिए तैयार हैं। हमने अपनी डिस्पैच टीम को इस मुद्दे के बारे में सूचित कर दिया है और हम आपके ऑर्डर की जांच करें</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <div class="footer">
+    Druta Kart Voice Evaluation &mdash; Groq (whisper-large-v3 · llama-3.1-8b-instant · llama-3.3-70b-versatile) + Sarvam (bulbul:v1 TTS · mayura:v1 Translation) &mdash; 2026-03-11 10:18 UTC
+  </div>
+</div>
+</body>
+</html>

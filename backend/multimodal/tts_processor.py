@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 # Sarvam TTS endpoint
 _SARVAM_TTS_URL = "https://api.sarvam.ai/text-to-speech"
 
-# Default voice; Sarvam supports "meera" (F), "pavithra" (F), "maitreyi" (F),
-# "arvind" (M), "amol" (M) — all available for most Indian language codes.
-_DEFAULT_SPEAKER = "meera"
-_DEFAULT_MODEL = "bulbul:v1"
+# Default voice — Sarvam updated speaker names (2025).
+# Female options: anushka, manisha, vidya, priya, neha, pooja, simran, kavya, ishita, shreya
+# Male options:   abhilash, karun, hitesh, aditya, rahul, rohan, amit, dev, varun
+_DEFAULT_SPEAKER = "anushka"
+_DEFAULT_MODEL = "bulbul:v2"
 
 # Sarvam TTS has a ~500-char input limit per request
 _MAX_CHARS = 500
