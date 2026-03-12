@@ -15,6 +15,30 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 _EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+_model_instance = None
+
+
+def _get_model():
+    """Return a cached SentenceTransformer model, or None if unavailable."""
+    global _model_instance
+    if _model_instance is not None:
+        return _model_instance
+    try:
+        from sentence_transformers import SentenceTransformer  # type: ignore
+        _model_instance = SentenceTransformer(_EMBEDDING_MODEL)
+        logger.info("Loaded sentence-transformer model: %s", _EMBEDDING_MODEL)
+        return _model_instance
+    except Exception as exc:
+        logger.warning("sentence-transformers unavailable (%s); using dummy.", exc)
+        return None
+
+
+def embed_texts(texts: List[str]) -> List[List[float]]:
+    """Embed a list of texts and return raw 384-dim float vectors."""
+    model = _get_model()
+    if model is not None:
+        return model.encode(texts, show_progress_bar=False).tolist()
+    return _DummyEmbeddingFunction()(texts)
 
 
 def get_embedding_function():

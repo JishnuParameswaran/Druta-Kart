@@ -27,14 +27,14 @@ def get_client():
         return _client
 
     url: Optional[str] = os.getenv("SUPABASE_URL")
-    key: Optional[str] = os.getenv("SUPABASE_ANON_KEY")
+    key: Optional[str] = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     if not url or not key:
         missing = []
         if not url:
             missing.append("SUPABASE_URL")
         if not key:
-            missing.append("SUPABASE_ANON_KEY")
+            missing.append("SUPABASE_SERVICE_ROLE_KEY")
         raise RuntimeError(
             f"Supabase client cannot be initialised: missing environment "
             f"variable(s): {', '.join(missing)}.  "

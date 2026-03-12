@@ -2,15 +2,18 @@
 Druta Kart - Knowledge Base Ingestion Script.
 
 Reads .txt files from rag/knowledge_base/, chunks them into meaningful
-passages, and upserts them into ChromaDB.
+passages, and upserts them into Supabase pgvector (documents table).
 
 Usage:
     cd backend
     python -m rag.ingest          # module mode
     python rag/ingest.py          # direct invocation
 
-Idempotent: re-running performs a full collection reset followed by a fresh
-upsert, so it is safe to run after editing knowledge-base files.
+Idempotent: re-running deletes all existing rows and re-inserts fresh embeddings,
+so it is safe to run after editing knowledge-base files.
+
+Prerequisites (run once in Supabase SQL editor):
+    See supabase/migrations/001_pgvector.sql
 """
 from __future__ import annotations
 
@@ -30,8 +33,6 @@ if str(_BACKEND) not in sys.path:
 logger = logging.getLogger(__name__)
 
 _KB_DIR = _HERE / "knowledge_base"
-_CHROMA_DIR = _HERE / "chroma_db"
-_COLLECTION_NAME = "druta_kart_kb"
 
 # Minimum characters for a chunk to be worth embedding
 _MIN_CHUNK_LEN = 30
@@ -129,66 +130,51 @@ def load_chunks() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def ingest(reset: bool = True) -> int:
-    """Ingest the knowledge base into ChromaDB.
+    """Ingest the knowledge base into Supabase pgvector.
 
     Args:
-        reset: If True (default), delete and recreate the collection before
-               ingesting so stale entries from removed documents are purged.
+        reset: If True (default), delete all existing rows before ingesting
+               so stale entries from removed documents are purged.
                Set to False for additive / incremental upsert.
 
     Returns:
         Number of chunks successfully upserted.
     """
-    try:
-        import chromadb  # type: ignore
-    except ImportError:
-        logger.error("chromadb not installed. Run: pip install chromadb")
-        return 0
+    from rag.embeddings import embed_texts
+    from db.supabase_client import get_client
 
-    from rag.embeddings import get_embedding_function
-
-    _CHROMA_DIR.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
-
-    if reset:
-        try:
-            client.delete_collection(_COLLECTION_NAME)
-            logger.info("Deleted existing collection '%s'.", _COLLECTION_NAME)
-        except Exception:
-            pass  # Collection may not exist yet on first run
-
-    collection = client.get_or_create_collection(
-        name=_COLLECTION_NAME,
-        embedding_function=get_embedding_function(),
-    )
-
+    client = get_client()
     chunks = load_chunks()
     if not chunks:
         logger.warning("No chunks to ingest.")
         return 0
 
-    ids = [c["id"] for c in chunks]
-    documents = [c["text"] for c in chunks]
-    metadatas = [c["metadata"] for c in chunks]
+    if reset:
+        client.table("documents").delete().neq("id", "").execute()
+        logger.info("Cleared existing documents from Supabase.")
 
-    # Upsert in batches to keep memory usage bounded
-    batch_size = 100
+    # Embed and upsert in batches
+    batch_size = 50
     ingested = 0
     for start in range(0, len(chunks), batch_size):
-        end = start + batch_size
-        collection.upsert(
-            ids=ids[start:end],
-            documents=documents[start:end],
-            metadatas=metadatas[start:end],
-        )
-        ingested += len(ids[start:end])
+        batch = chunks[start:start + batch_size]
+        texts = [c["text"] for c in batch]
+        embeddings = embed_texts(texts)
+
+        rows = [
+            {
+                "id": c["id"],
+                "content": c["text"],
+                "metadata": c["metadata"],
+                "embedding": emb,
+            }
+            for c, emb in zip(batch, embeddings)
+        ]
+        client.table("documents").upsert(rows).execute()
+        ingested += len(rows)
         logger.info("  Upserted %d / %d chunks.", ingested, len(chunks))
 
-    logger.info(
-        "Ingestion complete: %d chunks in collection '%s'.",
-        ingested,
-        _COLLECTION_NAME,
-    )
+    logger.info("Ingestion complete: %d chunks in Supabase pgvector.", ingested)
     return ingested
 
 
@@ -201,9 +187,8 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
-    logger.info("Starting knowledge-base ingestion...")
+    logger.info("Starting knowledge-base ingestion into Supabase pgvector...")
     logger.info("Knowledge base : %s", _KB_DIR)
-    logger.info("ChromaDB path  : %s", _CHROMA_DIR)
 
     chunks = load_chunks()
     logger.info("Total chunks to ingest: %d", len(chunks))

@@ -16,8 +16,12 @@ class Settings(BaseSettings):
     groq_api_key: str
     sarvam_api_key: str
     supabase_url: str
-    supabase_anon_key: str
+    supabase_service_role_key: str
+    supabase_anon_key: Optional[str] = None  # kept for legacy / local dev only
     hf_token: Optional[str] = None
+
+    # CORS — comma-separated list of allowed origins
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
     # Models
     groq_text_model: str = "llama-3.3-70b-versatile"

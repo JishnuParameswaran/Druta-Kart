@@ -16,8 +16,7 @@ groq==0.13.0
 # Database
 supabase==2.10.0
 
-# Vector DB
-chromadb==0.5.23
+# Embeddings (pgvector via Supabase)
 sentence-transformers==3.3.1
 
 # NLP

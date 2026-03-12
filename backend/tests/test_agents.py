@@ -106,9 +106,7 @@ _stub_module("groq", Groq=_GroqClient)
 _exifread = _stub_module("exifread")
 _exifread.process_file = MagicMock(return_value={})
 
-# chromadb / sentence_transformers stubs
-_chromadb = _stub_module("chromadb")
-_chromadb.PersistentClient = MagicMock()
+# sentence_transformers stub (chromadb removed — now using Supabase pgvector)
 _stub_module("sentence_transformers", SentenceTransformer=MagicMock())
 
 # supabase stub
@@ -324,24 +322,20 @@ class TestVectorStore:
 
         from rag import vector_store
         original_kb = vector_store._KB_DIR
-        original_coll = vector_store._chroma_collection
         try:
             vector_store._KB_DIR = kb_dir
-            vector_store._chroma_collection = None
-            # Force _get_collection to return None so keyword path is used
-            with patch("rag.vector_store._get_collection", return_value=None):
+            # Force pgvector to fail so keyword fallback is used
+            with patch("rag.vector_store._pgvector_search", return_value=[]):
                 result = vector_store.query_knowledge_base("refund")
         finally:
             vector_store._KB_DIR = original_kb
-            vector_store._chroma_collection = original_coll
 
         assert isinstance(result, str)
 
-    def test_reset_collection_clears_state(self):
+    def test_reset_collection_is_noop(self):
         from rag import vector_store
-        vector_store._chroma_collection = MagicMock()
-        vector_store.reset_collection()
-        assert vector_store._chroma_collection is None
+        # reset_collection() is a no-op now (pgvector has no local cache to clear)
+        vector_store.reset_collection()  # should not raise
 
     def test_query_empty_kb_returns_empty_string(self, tmp_path):
         """Empty knowledge base directory → empty string returned."""
@@ -352,12 +346,10 @@ class TestVectorStore:
         original_kb = vector_store._KB_DIR
         try:
             vector_store._KB_DIR = kb_dir
-            vector_store._chroma_collection = None
-            with patch("rag.vector_store._get_collection", return_value=None):
+            with patch("rag.vector_store._pgvector_search", return_value=[]):
                 result = vector_store.query_knowledge_base("anything")
         finally:
             vector_store._KB_DIR = original_kb
-            vector_store.reset_collection()
 
         assert result == ""
 

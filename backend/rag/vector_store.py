@@ -1,52 +1,49 @@
 """
 Druta Kart - RAG vector store.
 
-Primary path: ChromaDB with sentence-transformer embeddings.
-Fallback path: keyword search over raw knowledge-base text files (no ML needed).
+Primary path: Supabase pgvector (match_documents RPC).
+Fallback path: keyword search over raw knowledge-base text files.
 
 The fallback ensures complaint_agent can always retrieve policy context even
-when ChromaDB is not initialised (e.g. during unit tests or cold starts).
+when Supabase is unreachable (e.g. during unit tests or cold starts).
 """
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 from typing import List
 
 logger = logging.getLogger(__name__)
 
 _KB_DIR = Path(__file__).parent / "knowledge_base"
-_CHROMA_DIR = Path(__file__).parent / "chroma_db"
-_COLLECTION_NAME = "druta_kart_kb"
-
-# Module-level cache
-_chroma_collection = None
 
 
 # ---------------------------------------------------------------------------
-# ChromaDB (primary path)
+# Supabase pgvector (primary path)
 # ---------------------------------------------------------------------------
 
-def _get_collection():
-    global _chroma_collection
-    if _chroma_collection is not None:
-        return _chroma_collection
-
+def _pgvector_search(query: str, n_results: int = 3) -> List[str]:
+    """Query Supabase pgvector via the match_documents stored function."""
     try:
-        import chromadb  # type: ignore
-        from rag.embeddings import get_embedding_function  # type: ignore
+        from rag.embeddings import embed_texts
+        from db.supabase_client import get_client
 
-        client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
-        _chroma_collection = client.get_or_create_collection(
-            name=_COLLECTION_NAME,
-            embedding_function=get_embedding_function(),
-        )
-        logger.info("ChromaDB collection '%s' loaded.", _COLLECTION_NAME)
-        return _chroma_collection
+        embeddings = embed_texts([query])
+        if not embeddings:
+            return []
+
+        client = get_client()
+        result = client.rpc(
+            "match_documents",
+            {"query_embedding": embeddings[0], "match_count": n_results},
+        ).execute()
+
+        if result.data:
+            return [row["content"] for row in result.data]
+        return []
     except Exception as exc:
-        logger.warning("ChromaDB unavailable (%s); will use text fallback.", exc)
-        return None
+        logger.warning("pgvector search failed (%s); will use text fallback.", exc)
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +58,6 @@ def _load_knowledge_base() -> List[dict]:
     for txt_file in sorted(_KB_DIR.glob("*.txt")):
         try:
             text = txt_file.read_text(encoding="utf-8")
-            # Split on double-newline to get rough paragraphs
             for para in text.split("\n\n"):
                 para = para.strip()
                 if len(para) > 30:
@@ -91,7 +87,7 @@ def _keyword_search(query: str, chunks: List[dict], n: int = 3) -> List[str]:
 def query_knowledge_base(query: str, n_results: int = 3) -> str:
     """Query the knowledge base and return relevant context as a single string.
 
-    Tries ChromaDB first; falls back to keyword search over raw text files.
+    Tries Supabase pgvector first; falls back to keyword search over raw text files.
 
     Args:
         query:     Natural language query (e.g. "refund policy for damaged items").
@@ -103,19 +99,10 @@ def query_knowledge_base(query: str, n_results: int = 3) -> str:
     if not query or not query.strip():
         return ""
 
-    # -- Try ChromaDB --
-    collection = _get_collection()
-    if collection is not None:
-        try:
-            results = collection.query(
-                query_texts=[query],
-                n_results=min(n_results, collection.count() or 1),
-            )
-            docs = results.get("documents", [[]])[0]
-            if docs:
-                return "\n\n".join(docs)
-        except Exception as exc:
-            logger.warning("ChromaDB query failed: %s; falling back to text search.", exc)
+    # -- Try pgvector --
+    docs = _pgvector_search(query, n_results)
+    if docs:
+        return "\n\n".join(docs)
 
     # -- Text fallback --
     chunks = _load_knowledge_base()
@@ -128,6 +115,5 @@ def query_knowledge_base(query: str, n_results: int = 3) -> str:
 
 
 def reset_collection() -> None:
-    """Reset the cached ChromaDB collection (useful in tests)."""
-    global _chroma_collection
-    _chroma_collection = None
+    """No-op kept for test compatibility (was ChromaDB-specific)."""
+    pass
