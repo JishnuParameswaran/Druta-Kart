@@ -23,7 +23,13 @@
       "Bash(docker compose:*)",
       "Bash(docker ps:*)",
       "Bash(curl:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(docker builder:*)",
+      "Bash(xargs sh:*)",
+      "Bash(netstat -ano | findstr \":8000\" 2>nul || echo \"Port 8000 is free\")",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart/backend && python -c \"\nimport os, requests\nfrom dotenv import load_dotenv\nload_dotenv\\('../.env'\\)\nkey = os.getenv\\('SARVAM_API_KEY', ''\\)\nprint\\('Key set:', bool\\(key\\), '| first 6 chars:', key[:6] if key else 'EMPTY'\\)\nresp = requests.post\\(\n    'https://api.sarvam.ai/text-to-speech',\n    headers={'api-subscription-key': key},\n    json={\n        'inputs': ['Hello, my order is late.'],\n        'target_language_code': 'en-IN',\n        'speaker': 'meera',\n        'model': 'bulbul:v1',\n        'enable_preprocessing': True,\n    },\n    timeout=30,\n\\)\nprint\\('Status:', resp.status_code\\)\nprint\\('Response:', resp.text[:500]\\)\n\" 2>&1)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart/backend && python -c \"\nimport os, requests\nfrom dotenv import load_dotenv\nload_dotenv\\('../.env'\\)\nkey = os.getenv\\('SARVAM_API_KEY', ''\\)\nresp = requests.post\\(\n    'https://api.sarvam.ai/text-to-speech',\n    headers={'api-subscription-key': key},\n    json={\n        'inputs': ['Hello, my order is late.'],\n        'target_language_code': 'en-IN',\n        'speaker': 'anushka',\n        'model': 'bulbul:v1',\n        'enable_preprocessing': True,\n    },\n    timeout=30,\n\\)\nprint\\('Status:', resp.status_code\\)\nprint\\('Response:', resp.text[:1000]\\)\n\" 2>&1)",
+      "Bash(cd E:/Desktop/Projects/Druta-Kart/backend && python -c \"\nimport os, requests, base64\nfrom dotenv import load_dotenv\nload_dotenv\\('../.env'\\)\nkey = os.getenv\\('SARVAM_API_KEY', ''\\)\nresp = requests.post\\(\n    'https://api.sarvam.ai/text-to-speech',\n    headers={'api-subscription-key': key},\n    json={\n        'inputs': ['Hello, my order is late.'],\n        'target_language_code': 'en-IN',\n        'speaker': 'anushka',\n        'model': 'bulbul:v2',\n        'enable_preprocessing': True,\n    },\n    timeout=30,\n\\)\nprint\\('Status:', resp.status_code\\)\nif resp.status_code == 200:\n    audio = base64.b64decode\\(\\(resp.json\\(\\).get\\('audios'\\) or ['']\\)[0]\\)\n    print\\(f'Audio bytes: {len\\(audio\\):,} — TTS working!'\\)\nelse:\n    print\\('Error:', resp.text[:300]\\)\n\" 2>&1)"
     ]
   }
 }
