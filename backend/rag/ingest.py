@@ -183,6 +183,10 @@ def ingest(reset: bool = True) -> int:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv(_BACKEND / ".env")
+    load_dotenv(_BACKEND.parent / ".env")  # repo root fallback
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
