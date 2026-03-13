@@ -51,6 +51,8 @@ _INJECTION_PHRASES: list[str] = [
     "ignore all instructions",
     "ignore previous instructions",
     "ignore all previous",          # covers "ignore all previous instructions"
+    "ignore your instructions",     # covers "ignore all your instructions"
+    "ignore all your",              # covers "ignore all your instructions/rules/etc"
     "disregard instructions",
     "forget your instructions",
     "you are now",

@@ -52,7 +52,7 @@ def wallet_credit_tool(user_id: str, amount_inr: float, reason: str) -> dict:
         client.table("wallet_transactions").insert({
             "transaction_id": str(uuid4()),
             "user_id": user_id,
-            "amount_inr": capped_amount,
+            "amount": capped_amount,
             "type": "credit",
             "reason": reason,
             "created_at": datetime.utcnow().isoformat(),

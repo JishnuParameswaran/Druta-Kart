@@ -13,7 +13,7 @@ from db.supabase_client import get_client
 
 logger = logging.getLogger(__name__)
 
-_TABLE = "customers"
+_TABLE = "customer_profiles"
 
 # Segmentation thresholds
 _CHURN_DAYS = 30          # days since last order that flags "churning"

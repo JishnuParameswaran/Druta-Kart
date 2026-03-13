@@ -233,7 +233,8 @@ def dispatch_node(state: AgentState) -> dict:
 def retention_node(state: AgentState) -> dict:
     # Only run retention if the complaint was actually resolved
     if not state.get("resolved"):
-        return {}
+        # Must return at least one state key — newer LangGraph rejects empty dicts
+        return {"offer_given": state.get("offer_given")}
     try:
         from agents.retention_agent import run
         return run(state)
