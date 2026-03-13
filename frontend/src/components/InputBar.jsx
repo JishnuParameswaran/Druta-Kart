@@ -2,8 +2,10 @@ import { useRef, useState } from 'react'
 
 export default function InputBar({ onSend, onImageUpload, onVoice, disabled, pendingImage, onClearImage }) {
   const [text, setText] = useState('')
+  const [recording, setRecording] = useState(false)
   const fileRef = useRef()
-  const audioRef = useRef()
+  const mediaRecorderRef = useRef(null)
+  const chunksRef = useRef([])
 
   function handleSend() {
     if (!text.trim() || disabled) return
@@ -15,6 +17,39 @@ export default function InputBar({ onSend, onImageUpload, onVoice, disabled, pen
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
+    }
+  }
+
+  async function handleMicClick() {
+    if (recording) {
+      // Stop recording → triggers ondataavailable + onstop
+      mediaRecorderRef.current?.stop()
+      mediaRecorderRef.current?.stream.getTracks().forEach(t => t.stop())
+      setRecording(false)
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      chunksRef.current = []
+
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        const file = new File([blob], 'voice.webm', { type: 'audio/webm' })
+        onVoice(file)
+        chunksRef.current = []
+      }
+
+      recorder.start()
+      mediaRecorderRef.current = recorder
+      setRecording(true)
+    } catch {
+      alert('Microphone access denied. Please allow microphone access in your browser and try again.')
     }
   }
 
@@ -45,19 +80,16 @@ export default function InputBar({ onSend, onImageUpload, onVoice, disabled, pen
         </button>
 
         <button
-          title="Send voice"
-          onClick={() => audioRef.current.click()}
-          disabled={disabled}
-          className="p-2 text-slate-400 hover:text-indigo-400 disabled:opacity-40 transition-colors"
+          title={recording ? 'Stop recording' : 'Record voice message'}
+          onClick={handleMicClick}
+          disabled={disabled && !recording}
+          className={`p-2 transition-colors rounded-full ${
+            recording
+              ? 'text-red-400 animate-pulse bg-red-400/10'
+              : 'text-slate-400 hover:text-indigo-400 disabled:opacity-40'
+          }`}
         >
           🎤
-          <input
-            ref={audioRef}
-            type="file"
-            accept="audio/wav,audio/mp3,audio/ogg,audio/webm"
-            className="hidden"
-            onChange={e => { if (e.target.files[0]) onVoice(e.target.files[0]); e.target.value = '' }}
-          />
         </button>
 
         <textarea
@@ -78,6 +110,12 @@ export default function InputBar({ onSend, onImageUpload, onVoice, disabled, pen
           Send
         </button>
       </div>
+
+      {recording && (
+        <p className="text-xs text-red-400 mt-2 text-center animate-pulse">
+          🔴 Recording… click 🎤 again to stop and send
+        </p>
+      )}
     </div>
   )
 }
