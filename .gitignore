@@ -45,3 +45,7 @@ data/synthetic/conversations.jsonl
 data/synthetic/validation_report.json
 data/synthetic/__pycache__/
 backend/data/synthetic/conversations.jsonl
+
+# Large video files - host on YouTube instead
+Presentation/*.mp4
+presentation/*.mp4
