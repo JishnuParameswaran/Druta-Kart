@@ -112,7 +112,7 @@ _VISION_PROMPT = (
 )
 
 
-def _analyse_with_vision(image_path: str, groq_api_key: str | None = None) -> dict:
+def _analyse_with_vision(image_path: str) -> dict:
     """Call Groq Vision API to classify the image."""
     result: dict = {"label": None, "reason": None}
     try:
@@ -129,7 +129,7 @@ def _analyse_with_vision(image_path: str, groq_api_key: str | None = None) -> di
         mime = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
 
         from groq import Groq  # lazy import
-        client = Groq(api_key=groq_api_key or settings.groq_api_key)
+        client = Groq(api_key=settings.groq_api_key)
         response = client.chat.completions.create(
             model=settings.groq_vision_model,
             messages=[{
@@ -194,7 +194,6 @@ def run(state: dict) -> dict:
     """
     image_path: Optional[str] = state.get("image_path")
     user_id = state.get("user_id", "")
-    groq_api_key: Optional[str] = state.get("groq_api_key")
     tools_called = list(state.get("tools_called", []))
     tools_called.append("image_validation_agent")
 
@@ -208,7 +207,7 @@ def run(state: dict) -> dict:
         }
 
     exif = _analyse_exif(image_path)
-    vision = _analyse_with_vision(image_path, groq_api_key=groq_api_key)
+    vision = _analyse_with_vision(image_path)
     classification = _classify(exif, vision)
 
     logger.info(

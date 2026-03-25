@@ -9,7 +9,7 @@ function newSession() {
   return { userId: 'user_' + uuidv4().slice(0, 8), sessionId: uuidv4() }
 }
 
-export default function ChatPage() {
+export default function ChatPage({ groqApiKey, onChangeKey }) {
   const [session, setSession] = useState(() => newSession())
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
@@ -51,6 +51,7 @@ export default function ChatPage() {
         sessionId: session.sessionId,
         message: text,
         imagePath,
+        groqApiKey,
       })
 
       setMessages(prev => [...prev, {
@@ -86,7 +87,7 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMsg])
 
     try {
-      const res = await sendVoice({ userId: session.userId, sessionId: session.sessionId, file })
+      const res = await sendVoice({ userId: session.userId, sessionId: session.sessionId, file, groqApiKey })
       setMessages(prev => [...prev, {
         id: uuidv4(), role: 'ai',
         text: res.text_response,
@@ -127,10 +128,17 @@ export default function ChatPage() {
 
       <div className="flex flex-col flex-1 min-w-0">
         <div className="border-b border-slate-700 px-6 py-3 flex items-center gap-3 bg-slate-800">
-          <div>
+          <div className="flex-1">
             <h1 className="font-semibold text-sm text-white">Customer Support</h1>
             <p className="text-xs text-slate-400">Multilingual · Voice · Image · Agentic AI</p>
           </div>
+          <button
+            onClick={onChangeKey}
+            title="Change your Groq API key"
+            className="text-xs text-slate-400 hover:text-indigo-400 transition-colors px-2 py-1 rounded border border-slate-600 hover:border-indigo-500"
+          >
+            🔑 Change Key
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">

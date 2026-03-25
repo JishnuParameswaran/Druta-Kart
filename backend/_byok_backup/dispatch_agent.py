@@ -89,11 +89,11 @@ def _detect_issues(text: str) -> List[str]:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _get_llm(groq_api_key: str | None = None):
+def _get_llm():
     from langchain_groq import ChatGroq
     return ChatGroq(
         model=settings.groq_text_model,
-        api_key=groq_api_key or settings.groq_api_key,
+        api_key=settings.groq_api_key,
         temperature=0.3,
     )
 
@@ -112,11 +112,10 @@ def _build_dispatch_response(
     issues: List[str],
     checklist: dict,
     order: Optional[dict],
-    groq_api_key: str | None = None,
 ) -> str:
     """Ask the LLM to compose an empathetic dispatch escalation response."""
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage, SystemMessage
 
         order_section = ""
@@ -185,7 +184,6 @@ def run(state: dict) -> dict:
     session_id   = state.get("session_id", "")
     language     = state.get("language", "en-IN")
     order_id: Optional[str] = state.get("order_id")
-    groq_api_key: Optional[str] = state.get("groq_api_key")
     tools_called = list(state.get("tools_called", []))
 
     # Extract last user message
@@ -253,7 +251,6 @@ def run(state: dict) -> dict:
         issues=issues,
         checklist=checklist,
         order=order,
-        groq_api_key=groq_api_key,
     )
 
     # Resolved if compensation applied or checklist created; otherwise escalated

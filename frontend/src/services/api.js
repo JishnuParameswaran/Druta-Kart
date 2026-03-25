@@ -1,6 +1,6 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'https://druta-kart-production.up.railway.app'
 
-export async function sendMessage({ userId, sessionId, message, imagePath }) {
+export async function sendMessage({ userId, sessionId, message, imagePath, groqApiKey }) {
   const res = await fetch(`${BASE_URL}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -9,6 +9,7 @@ export async function sendMessage({ userId, sessionId, message, imagePath }) {
       session_id: sessionId,
       message,
       image_path: imagePath || null,
+      groq_api_key: groqApiKey || null,
     }),
   })
   if (!res.ok) {
@@ -34,11 +35,12 @@ export async function uploadImage({ sessionId, file }) {
   return res.json()
 }
 
-export async function sendVoice({ userId, sessionId, file }) {
+export async function sendVoice({ userId, sessionId, file, groqApiKey }) {
   const form = new FormData()
   form.append('user_id', userId)
   form.append('session_id', sessionId)
   form.append('file', file)
+  if (groqApiKey) form.append('groq_api_key', groqApiKey)
 
   const res = await fetch(`${BASE_URL}/voice`, {
     method: 'POST',

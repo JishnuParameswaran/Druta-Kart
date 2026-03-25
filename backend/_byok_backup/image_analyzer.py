@@ -24,17 +24,12 @@ _DEFAULT_PROMPT = (
 )
 
 
-def analyze_image(
-    image_path: str,
-    prompt: str = _DEFAULT_PROMPT,
-    groq_api_key: str | None = None,
-) -> str:
+def analyze_image(image_path: str, prompt: str = _DEFAULT_PROMPT) -> str:
     """Analyse an image with Groq Vision and return the model's text response.
 
     Args:
-        image_path:   Local path to the image file (JPEG, PNG, WEBP, GIF).
-        prompt:       Instruction sent alongside the image.
-        groq_api_key: Optional Groq API key override (BYOK). Falls back to settings.
+        image_path: Local path to the image file (JPEG, PNG, WEBP, GIF).
+        prompt:     Instruction sent alongside the image.
 
     Returns:
         Model response string, or empty string on failure.
@@ -53,7 +48,7 @@ def analyze_image(
 
         from groq import Groq  # lazy import
 
-        client = Groq(api_key=groq_api_key or settings.groq_api_key)
+        client = Groq(api_key=settings.groq_api_key)
         response = client.chat.completions.create(
             model=settings.groq_vision_model,
             messages=[{

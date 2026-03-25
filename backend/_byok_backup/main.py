@@ -105,7 +105,6 @@ class ChatRequest(BaseModel):
     message: str
     order_id: Optional[str] = None
     image_path: Optional[str] = None
-    groq_api_key: Optional[str] = None  # BYOK: optional per-request Groq API key
 
 
 class ChatResponse(BaseModel):
@@ -147,10 +146,10 @@ class VoiceResponse(BaseModel):
 # NLP pipeline helpers (lazy imports — keep startup fast)
 # ---------------------------------------------------------------------------
 
-def _detect_language(text: str, groq_api_key: Optional[str] = None) -> str:
+def _detect_language(text: str) -> str:
     try:
         from nlp.language_detector import detect_language
-        return detect_language(text, groq_api_key=groq_api_key)
+        return detect_language(text)
     except Exception as exc:
         logger.warning("Language detection failed: %s", exc)
         return "en-IN"
@@ -188,10 +187,10 @@ def _translate_to_language(text: str, language: str) -> str:
         return text
 
 
-def _transcribe_audio(audio_path: str, groq_api_key: Optional[str] = None) -> str:
+def _transcribe_audio(audio_path: str) -> str:
     try:
         from multimodal.stt_processor import transcribe_audio
-        return transcribe_audio(audio_path, groq_api_key=groq_api_key)
+        return transcribe_audio(audio_path)
     except Exception as exc:
         logger.error("STT transcription failed: %s", exc)
         return ""
@@ -219,7 +218,6 @@ def _run_supervisor(
     emotion: str,
     order_id: Optional[str],
     image_path: Optional[str],
-    groq_api_key: Optional[str] = None,
 ) -> dict:
     from agents.supervisor import run
     return run(
@@ -230,7 +228,6 @@ def _run_supervisor(
         emotion=emotion,
         order_id=order_id,
         image_path=image_path,
-        groq_api_key=groq_api_key,
     )
 
 
@@ -266,22 +263,9 @@ def _process_message(
     raw_message: str,
     order_id: Optional[str] = None,
     image_path: Optional[str] = None,
-    groq_api_key: Optional[str] = None,
 ) -> tuple[dict, float]:
     """Run the full NLP → supervisor pipeline. Returns (result_dict, latency_ms)."""
     start = time.perf_counter()
-
-    # ── BYOK guard: reject if neither the request nor the server has a key ─────
-    from config import settings as _settings
-    if not groq_api_key and not _settings.groq_api_key:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "No Groq API key provided. Please enter your Groq API key in the app "
-                "to use this demo. Get a free key at https://console.groq.com"
-            ),
-        )
-    # ── End BYOK guard ─────────────────────────────────────────────────────────
 
     # ── Input safety: sanitize → injection check → red-team check ─────────────
     from security.safety_layer import run_input_safety, run_output_safety, get_security_alert_message
@@ -294,7 +278,7 @@ def _process_message(
     raw_message = safety["cleaned_text"]
     # ── End input safety ───────────────────────────────────────────────────────
 
-    language = _detect_language(raw_message, groq_api_key=groq_api_key)
+    language = _detect_language(raw_message)
     emotion = _analyze_emotion(raw_message)
     english_message = _translate_to_english(raw_message, language)
 
@@ -309,7 +293,6 @@ def _process_message(
         emotion=emotion,
         order_id=order_id,
         image_path=image_path,
-        groq_api_key=groq_api_key,
     )
 
     # Translate response back to customer language
@@ -379,7 +362,6 @@ async def chat(request: Request, body: ChatRequest):
         raw_message=body.message,
         order_id=body.order_id,
         image_path=body.image_path,
-        groq_api_key=body.groq_api_key,
     )
 
     return ChatResponse(
@@ -479,7 +461,6 @@ async def voice(
     user_id: str = Form(...),
     session_id: str = Form(...),
     file: UploadFile = File(...),
-    groq_api_key: Optional[str] = Form(None),
 ):
     """Voice chat endpoint.
 
@@ -515,7 +496,7 @@ async def voice(
 
     try:
         # STT: audio → transcript
-        transcript = _transcribe_audio(str(audio_path), groq_api_key=groq_api_key)
+        transcript = _transcribe_audio(str(audio_path))
         if not transcript:
             raise HTTPException(
                 status_code=422,
@@ -527,7 +508,6 @@ async def voice(
             user_id=user_id,
             session_id=session_id,
             raw_message=transcript,
-            groq_api_key=groq_api_key,
         )
 
         # TTS: response text → audio bytes → base64
@@ -593,7 +573,6 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             message = data.get("message", "").strip()
             order_id = data.get("order_id")
             image_path = data.get("image_path")
-            groq_api_key = data.get("groq_api_key")
 
             if not message:
                 await websocket.send_json({"error": "Empty message"})
@@ -606,7 +585,6 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                     raw_message=message,
                     order_id=order_id,
                     image_path=image_path,
-                    groq_api_key=groq_api_key,
                 )
                 await websocket.send_json({
                     "response": result.get("response", ""),

@@ -73,19 +73,16 @@ class AgentState(TypedDict):
     response: str
     hallucination_flagged: bool
 
-    # BYOK — optional per-request Groq API key; falls back to server key if absent
-    groq_api_key: Optional[str]
-
 
 # ---------------------------------------------------------------------------
 # LLM helper
 # ---------------------------------------------------------------------------
 
-def _get_llm(groq_api_key: Optional[str] = None):
+def _get_llm():
     from langchain_groq import ChatGroq
     return ChatGroq(
         model=settings.groq_text_model,
-        api_key=groq_api_key or settings.groq_api_key,
+        api_key=settings.groq_api_key,
         temperature=0.2,
     )
 
@@ -117,7 +114,7 @@ def detect_intent_node(state: AgentState) -> dict:
         return {"intent": "general"}
 
     try:
-        llm = _get_llm(state.get("groq_api_key"))
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage
         result = llm.invoke([HumanMessage(content=(
             "Classify this customer support message into ONE category.\n"
@@ -255,7 +252,7 @@ def general_node(state: AgentState) -> dict:
     user_message = _last_user_message(state)
     language = state.get("language", "en-IN")
     try:
-        llm = _get_llm(state.get("groq_api_key"))
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage, SystemMessage
         result = llm.invoke([
             SystemMessage(content=_get_system_prompt()),
@@ -296,12 +293,7 @@ def respond_node(state: AgentState) -> dict:
     hallucination_flagged = False
     try:
         from agents.hallucination_guard import check_response
-        guard_result = check_response(
-            response,
-            session_id=session_id,
-            user_id=user_id,
-            groq_api_key=state.get("groq_api_key"),
-        )
+        guard_result = check_response(response, session_id=session_id, user_id=user_id)
         response = guard_result["response"]
         hallucination_flagged = guard_result["hallucination_flagged"]
     except Exception as exc:
@@ -412,7 +404,6 @@ def run(
     emotion: str = "neutral",
     order_id: Optional[str] = None,
     image_path: Optional[str] = None,
-    groq_api_key: Optional[str] = None,
 ) -> dict:
     """Main entry point called by FastAPI routes and WebSocket handler.
 
@@ -473,7 +464,6 @@ def run(
         "rag_used": False,
         "response": "",
         "hallucination_flagged": False,
-        "groq_api_key": groq_api_key,
     }
 
     try:

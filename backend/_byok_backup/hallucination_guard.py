@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _get_llm(groq_api_key: str | None = None):
+def _get_llm():
     from langchain_groq import ChatGroq  # lazy import
     return ChatGroq(
         model=settings.groq_text_model,
-        api_key=groq_api_key or settings.groq_api_key,
+        api_key=settings.groq_api_key,
         temperature=0.0,
     )
 
@@ -52,7 +52,6 @@ def check_response(
     response: str,
     session_id: str = "",
     user_id: str = "",
-    groq_api_key: str | None = None,
 ) -> dict:
     """Validate *response* for hallucinations using Groq LLM.
 
@@ -81,7 +80,7 @@ def check_response(
         prompt_template = _load_check_prompt()
         filled_prompt = prompt_template.replace("{response}", response)
 
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage
         result = llm.invoke([HumanMessage(content=filled_prompt)])
         raw = result.content.strip()

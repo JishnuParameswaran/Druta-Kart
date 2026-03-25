@@ -22,11 +22,11 @@ _LATE_THRESHOLD_MINUTES = 30  # minutes beyond promised ETA
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _get_llm(groq_api_key: str | None = None):
+def _get_llm():
     from langchain_groq import ChatGroq
     return ChatGroq(
         model=settings.groq_text_model,
-        api_key=groq_api_key or settings.groq_api_key,
+        api_key=settings.groq_api_key,
         temperature=0.3,
     )
 
@@ -46,10 +46,10 @@ def _is_late(order: dict) -> bool:
     return "delay" in status or "late" in status or status == "delayed"
 
 
-def _build_tracking_response(order: dict, user_message: str, language: str, groq_api_key: str | None = None) -> str:
+def _build_tracking_response(order: dict, user_message: str, language: str) -> str:
     """Ask the LLM to compose a tracking response from order data."""
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage, SystemMessage
 
         order_info = (
@@ -95,9 +95,9 @@ def _build_tracking_response(order: dict, user_message: str, language: str, groq
         )
 
 
-def _build_not_found_response(order_id: str, user_message: str, language: str = "en-IN", groq_api_key: str | None = None) -> str:
+def _build_not_found_response(order_id: str, user_message: str, language: str = "en-IN") -> str:
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage, SystemMessage
         result = llm.invoke([
             SystemMessage(content=_get_system_prompt()),
@@ -119,10 +119,10 @@ def _build_not_found_response(order_id: str, user_message: str, language: str = 
         )
 
 
-def _build_general_order_response(user_message: str, language: str, groq_api_key: str | None = None) -> str:
+def _build_general_order_response(user_message: str, language: str) -> str:
     """Fallback when no order_id is provided."""
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage, SystemMessage
         result = llm.invoke([
             SystemMessage(content=_get_system_prompt()),
@@ -158,7 +158,6 @@ def run(state: dict) -> dict:
     session_id = state.get("session_id", "")
     language = state.get("language", "en-IN")
     order_id: Optional[str] = state.get("order_id")
-    groq_api_key: Optional[str] = state.get("groq_api_key")
     tools_called = list(state.get("tools_called", []))
 
     # Extract last user message
@@ -172,7 +171,7 @@ def run(state: dict) -> dict:
 
     # No order ID → ask for it
     if not order_id:
-        response = _build_general_order_response(user_message, language, groq_api_key=groq_api_key)
+        response = _build_general_order_response(user_message, language)
         return {
             "response": response,
             "resolved": False,
@@ -197,7 +196,7 @@ def run(state: dict) -> dict:
 
     if not order.get("found"):
         return {
-            "response": _build_not_found_response(order_id, user_message, language, groq_api_key=groq_api_key),
+            "response": _build_not_found_response(order_id, user_message, language),
             "resolved": False,
             "tools_called": tools_called,
         }
@@ -223,7 +222,7 @@ def run(state: dict) -> dict:
             logger.error("wallet_credit_tool failed for late order: %s", exc)
 
     # Build tracking response
-    response = _build_tracking_response(order, user_message, language, groq_api_key=groq_api_key)
+    response = _build_tracking_response(order, user_message, language)
 
     # Append late credit note if applied
     if offer_given:

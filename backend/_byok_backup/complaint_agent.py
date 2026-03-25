@@ -42,11 +42,11 @@ _DISPATCH_COMPLAINT_TYPES = {"damaged", "wrong", "missing", "expired"}
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _get_llm(groq_api_key: str | None = None):
+def _get_llm():
     from langchain_groq import ChatGroq
     return ChatGroq(
         model=settings.groq_text_model,
-        api_key=groq_api_key or settings.groq_api_key,
+        api_key=settings.groq_api_key,
         temperature=0.3,
     )
 
@@ -59,10 +59,10 @@ def _get_system_prompt() -> str:
         return "You are a helpful customer support agent for Druta Kart."
 
 
-def _classify_complaint(user_message: str, groq_api_key: str | None = None) -> str:
+def _classify_complaint(user_message: str) -> str:
     """Use LLM to classify the complaint type."""
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage
         result = llm.invoke([HumanMessage(content=(
             f"Classify this customer complaint into ONE of these categories: "
@@ -88,10 +88,10 @@ def _query_policy(query: str) -> str:
         return ""
 
 
-def _is_customer_disputing(user_message: str, groq_api_key: str | None = None) -> bool:
+def _is_customer_disputing(user_message: str) -> bool:
     """Use LLM to detect if customer is still disputing the image review."""
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage
         result = llm.invoke([HumanMessage(content=(
             "A customer was told their complaint image does not show actual damage. "
@@ -125,13 +125,12 @@ def _resolve_complaint(
     language: str,
     policy_context: str,
     emotion: str,
-    groq_api_key: str | None = None,
 ) -> tuple[str, str, list]:
     """Call the appropriate resolution tool and return (response, resolution_type, tools_called)."""
     tools_called: list = []
 
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage
 
         resolution_prompt = (
@@ -195,7 +194,7 @@ def _resolve_complaint(
 
     # Generate customer-facing response
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage, SystemMessage
 
         tool_summary = ""
@@ -287,7 +286,6 @@ def run(state: dict) -> dict:
     image_path: Optional[str] = state.get("image_path")
     image_validation_result: Optional[str] = state.get("image_validation_result")
     vision_reason: str = state.get("vision_reason", "")
-    groq_api_key: Optional[str] = state.get("groq_api_key")
     tools_called = list(state.get("tools_called", []))
 
     # Extract last user message
@@ -300,7 +298,7 @@ def run(state: dict) -> dict:
             break
 
     # Step 1 — Classify complaint
-    complaint_type = state.get("complaint_type") or _classify_complaint(user_message, groq_api_key=groq_api_key)
+    complaint_type = state.get("complaint_type") or _classify_complaint(user_message)
 
     # Step 2 — Photo required only for physical damage (damaged/expired)
     # wrong/missing/payment resolve immediately without photo
@@ -319,7 +317,7 @@ def run(state: dict) -> dict:
     # Step 3 — Handle Turn 2+ misidentification dispute
     # If the previous turn already returned misidentification, check if customer is still arguing
     if image_validation_result == "misidentification" and user_message:
-        if _is_customer_disputing(user_message, groq_api_key=groq_api_key):
+        if _is_customer_disputing(user_message):
             # Build proof for human agent
             customer_msgs = _extract_customer_messages(messages)
             handoff_proof = {
@@ -423,7 +421,6 @@ def run(state: dict) -> dict:
         language=language,
         policy_context=policy_context,
         emotion=emotion,
-        groq_api_key=groq_api_key,
     )
     tools_called.extend(new_tools)
 

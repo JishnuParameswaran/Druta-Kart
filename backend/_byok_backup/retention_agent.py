@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _get_llm(groq_api_key: str | None = None):
+def _get_llm():
     from langchain_groq import ChatGroq
     return ChatGroq(
         model=settings.groq_text_model,
-        api_key=groq_api_key or settings.groq_api_key,
+        api_key=settings.groq_api_key,
         temperature=0.4,
     )
 
@@ -60,11 +60,10 @@ def _build_offer_message(
     resolution_response: str,
     customer_name: str,
     emotion: str,
-    groq_api_key: str | None = None,
 ) -> str:
     """Ask the LLM to weave the offer naturally into the existing response."""
     try:
-        llm = _get_llm(groq_api_key)
+        llm = _get_llm()
         from langchain_core.messages import HumanMessage
 
         offer_type = offer.get("offer_type", "")
@@ -122,7 +121,6 @@ def run(state: dict) -> dict:
     emotion = state.get("emotion", "neutral")
     complaint_type: Optional[str] = state.get("complaint_type")
     resolution_response = state.get("response", "")
-    groq_api_key: Optional[str] = state.get("groq_api_key")
     tools_called = list(state.get("tools_called", []))
 
     try:
@@ -154,7 +152,7 @@ def run(state: dict) -> dict:
 
         # Weave offer into the resolution message
         updated_response = _build_offer_message(
-            offer, resolution_response, customer_name, emotion, groq_api_key=groq_api_key
+            offer, resolution_response, customer_name, emotion
         )
 
         logger.info(

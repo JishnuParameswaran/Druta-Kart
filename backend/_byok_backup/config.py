@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     port: int = 8000
 
     # API Keys
-    groq_api_key: str = ""   # Optional on server — users supply their own key via BYOK
+    groq_api_key: str
     sarvam_api_key: str
     supabase_url: str
     supabase_service_role_key: str

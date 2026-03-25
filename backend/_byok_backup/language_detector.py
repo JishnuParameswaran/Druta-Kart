@@ -24,13 +24,13 @@ _VALID_CODES = {
 _ENGLISH_LIKE = {"en-IN", "hinglish", "kanglish", "manglish"}
 
 
-def detect_language(text: str, groq_api_key: str | None = None) -> str:
+def detect_language(text: str) -> str:
     """Detect language of text using Groq LLM. Returns a language code."""
     if not text or not text.strip():
         return "en-IN"
     try:
         from groq import Groq
-        client = Groq(api_key=groq_api_key or os.getenv("GROQ_API_KEY", ""))
+        client = Groq(api_key=os.getenv("GROQ_API_KEY", ""))
         prompt = (
             "Detect the language of this message.\n"
             "Reply with ONLY the language code, nothing else.\n"
@@ -59,7 +59,7 @@ def detect_language(text: str, groq_api_key: str | None = None) -> str:
         return "en-IN"
 
 
-def is_english(text: str, groq_api_key: str | None = None) -> bool:
+def is_english(text: str) -> bool:
     """Return True if text is English or a code-mixed variant (Hinglish/Kanglish/Manglish)
     that the LLM understands natively without translation."""
-    return detect_language(text, groq_api_key=groq_api_key) in _ENGLISH_LIKE
+    return detect_language(text) in _ENGLISH_LIKE
