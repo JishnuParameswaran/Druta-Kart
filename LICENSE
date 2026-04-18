@@ -4,74 +4,74 @@ All rights reserved.
 
 PERMITTED USE
 ─────────────
-Permission is granted, free of charge, to any person 
-obtaining a copy of this software and associated 
+Permission is granted, free of charge, to any person
+obtaining a copy of this software and associated
 documentation files (the "Software") to:
 
-1. View, read, and study the source code for personal 
+1. View, read, and study the source code for personal
    learning and educational purposes.
 
-2. Fork and modify the Software for personal, 
+2. Fork and modify the Software for personal,
    non-commercial, and academic use.
 
-3. Reference or discuss the Software in blog posts, 
-   articles, research papers, or educational content, 
-   provided that Jishnu Parameswaran is credited as 
-   the original author and a link to the original 
+3. Reference or discuss the Software in blog posts,
+   articles, research papers, or educational content,
+   provided that Jishnu Parameswaran is credited as
+   the original author and a link to the original
    repository is included.
 
-4. Use in academic teaching, lectures, and course 
-   materials at educational institutions, provided 
-   Jishnu Parameswaran is credited as the original 
-   author in all materials where the Software is 
+4. Use in academic teaching, lectures, and course
+   materials at educational institutions, provided
+   Jishnu Parameswaran is credited as the original
+   author in all materials where the Software is
    referenced or demonstrated.
 
 RESTRICTIONS
 ─────────────
-The following are strictly prohibited without prior 
+The following are strictly prohibited without prior
 written permission from the copyright holder:
 
-1. Commercial use — using this Software or any 
-   derivative of it to build, operate, or power a 
-   product or service that generates revenue, directly 
+1. Commercial use — using this Software or any
+   derivative of it to build, operate, or power a
+   product or service that generates revenue, directly
    or indirectly.
 
-2. Redistribution — publishing, packaging, or 
-   distributing this Software or substantial portions 
-   of it as a standalone product or as part of another 
+2. Redistribution — publishing, packaging, or
+   distributing this Software or substantial portions
+   of it as a standalone product or as part of another
    product, with or without modification.
 
-3. Rebranding — removing or replacing the original 
-   author's name, project name, or attribution in any 
+3. Rebranding — removing or replacing the original
+   author's name, project name, or attribution in any
    distributed or deployed version.
 
-4. SaaS deployment — running this Software as a 
-   hosted service offered to third parties without 
+4. SaaS deployment — running this Software as a
+   hosted service offered to third parties without
    written permission from the copyright holder.
 
 ATTRIBUTION REQUIREMENT
 ────────────────────────
-Any permitted use of this Software must include the 
-following attribution, clearly visible in the 
+Any permitted use of this Software must include the
+following attribution, clearly visible in the
 application, documentation, or repository:
 
    "Built on Druta Kart by Jishnu Parameswaran
-    github.com/JishnuParameswaran/Druta-Kart"
+    https://github.com/JishnuParameswaran/Druta-Kart"
 
 COMMERCIAL LICENSING
 ─────────────────────
-If you wish to use this Software for commercial 
+If you wish to use this Software for commercial
 purposes, please contact:
 
    Jishnu Parameswaran
    jishnuparameswaran@gmail.com
 
-Commercial licensing terms will be discussed on 
+Commercial licensing terms will be discussed on
 a case-by-case basis.
 
 DISCLAIMER
 ───────────
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY 
-OF ANY KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL 
-THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY
+OF ANY KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL
+THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
