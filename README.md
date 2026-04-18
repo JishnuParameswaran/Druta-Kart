@@ -377,12 +377,13 @@ Human annotation is slow, expensive, and hard to scale across 10+ languages. Usi
 | **Request Flowchart** | [flowchart.png](Presentation/flowchart.png) |
 | **Slide Deck (HTML)** | [presentation.html](Presentation/presentation.html) |
 | **Video Demo** | [YouTube](https://youtu.be/PtPVqp-qtHA) |
+| **Architecture & Deep-Dive (49 min)** | [YouTube](https://youtu.be/tL3gtzmNNLk) |
 
 ---
 
 ## License
 
-MIT License
+Source Available License
 
 ---
 
