@@ -27,6 +27,8 @@
 | **Health Check** | https://druta-kart-production.up.railway.app/health |
 | **Metrics** | https://druta-kart-production.up.railway.app/metrics |
 
+> ⚠️ Hosted demo currently offline. To clone and run locally, minimum required keys: `GROQ_API_KEY` · `SARVAM_API_KEY` · `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY`. For a live walkthrough contact [jishnuparameswaran@gmail.com](mailto:jishnuparameswaran@gmail.com)
+
 ---
 
 ## Video Demo
@@ -246,7 +248,7 @@ Druta-Kart/
 
 ```bash
 # Clone
-git clone https://github.com/your-org/druta-kart.git
+git clone https://github.com/JishnuParameswaran/Druta-Kart.git
 cd druta-kart
 
 # Environment
