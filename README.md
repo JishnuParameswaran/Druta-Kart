@@ -165,10 +165,10 @@ Response to Customer
 | STT | Groq Whisper large-v3 | Best accuracy, runs on Groq LPU (no GPU needed) |
 | Vision | Groq Llama 4 Scout | Multimodal image analysis for complaint validation |
 | TTS + Translation | Sarvam API | Indian-company, best Indian-language TTS quality |
-| Language Detection | lingua-language-detector | Built for short texts and Indian scripts |
+| Language Detection | Groq llama-3.3-70b-versatile | LLM-based — handles Hinglish, Kanglish, Manglish that rule-based detectors fail on |
 | Emotion Analysis | HuggingFace transformers | Local CPU model, no API cost |
 | Embeddings | sentence-transformers 3.3.1 | Open-source, CPU-efficient, multilingual |
-| Vector DB | ChromaDB | Local, zero-infra for dev; pgvector for production |
+| Vector DB | Supabase pgvector | Same DB as Postgres — no extra infra; keyword search fallback |
 | Database | Supabase (PostgreSQL) | RLS, pgvector, real-time, free tier |
 | Config | pydantic-settings 2.6.1 | Type-safe .env parsing, single source of truth |
 | Rate Limiting | slowapi 0.1.9 | 30 req/min per IP, API cost protection |
