@@ -139,7 +139,7 @@ Response to Customer
 | `dispatch_agent` | Late delivery, non-delivery, wrong address |
 | `fraud_escalation_agent` | Repeated disputes, fraud flagging |
 | `retention_agent` | Churn risk scoring, personalized offer generation |
-| `image_validation_agent` | Two-layer image fraud detection: EXIF metadata scan (Layer 1) + Groq Vision LLM (Layer 2). Detects AI-generated (Midjourney, DALL-E, Stable Diffusion) and manipulated images. Outcomes: real_damage → resolve, misidentification → educate, ai_generated → request live photo, suspicious → escalate on refusal |
+| `image_validation_agent` | Three-layer image fraud detection: EXIF metadata scan (Layer 1) + Groq Vision LLM (Layer 2) + structured outcome classification (Layer 3). Detects AI-generated (Midjourney, DALL-E, Stable Diffusion) and manipulated images. Outcomes: real_damage → resolve, misidentification → educate (escalate to human if customer disputes), ai_generated → escalate to human reviewer with proof, suspicious → escalate to human reviewer with proof |
 | `hallucination_guard` | Post-generation factuality check (50% sampled) |
 
 ### LangChain Tools
@@ -214,7 +214,7 @@ Druta-Kart/
 │   ├── tools/                   # LangChain tools
 │   ├── nlp/                     # Language detect, emotion, translation
 │   ├── multimodal/              # STT (Whisper), TTS (Sarvam), Vision
-│   ├── rag/                     # ChromaDB, embeddings, ingest
+│   ├── rag/                     # Supabase pgvector, embeddings, ingest
 │   ├── db/                      # Supabase client, models, repos
 │   ├── retention/               # Churn scorer, offer engine
 │   ├── security/                # Safety layer (input + output)
@@ -363,7 +363,7 @@ Groq's LPU delivers 10-20x faster inference than GPU-based cloud. Customer suppo
 Google TTS and Amazon Polly produce robotic audio for regional Indian languages. Sarvam was purpose-built for Indian language TTS by IIT Bombay researchers and produces natural, accent-accurate speech.
 
 **Why two-layer image fraud detection?**
-Quick commerce platforms face a real fraud pattern: customers upload AI-generated images of damaged products to claim fraudulent refunds. A single check is not enough — EXIF metadata alone misses images that have had metadata stripped, and Vision LLM alone can be fooled by high-quality AI art. Combining both layers (EXIF software tag scan + Groq Vision forensic analysis) catches fraud that either layer alone would miss. When a fake image is detected, the system does not accuse the customer — it politely requests a live camera photo, which cannot be substituted with an AI-generated image.
+Quick commerce platforms face a real fraud pattern: customers upload AI-generated images of damaged products to claim fraudulent refunds. A single check is not enough — EXIF metadata alone misses images that have had metadata stripped, and Vision LLM alone can be fooled by high-quality AI art. Combining both layers (EXIF software tag scan + Groq Vision forensic analysis) catches fraud that either layer alone would miss. When a fake image is detected, the system does not accuse the customer — the case is immediately escalated to a human reviewer with full proof (the image, the Vision LLM's analysis reason, and the full conversation history), and a row is inserted into the fraud_flags table in Supabase with status "pending_review".
 
 **Why AI-to-AI evaluation?**
 Human annotation is slow, expensive, and hard to scale across 10+ languages. Using Groq as both simulator and judge allows testing 344 conversations in hours with consistent, reproducible scoring.

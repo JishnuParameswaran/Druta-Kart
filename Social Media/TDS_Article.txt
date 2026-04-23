@@ -1,0 +1,481 @@
+================================================================================
+TOWARDS DATA SCIENCE — FULL ARTICLE
+================================================================================
+
+HOW TO SUBMIT TO TOWARDS DATA SCIENCE (Step-by-Step)
+------------------------------------------------------
+
+STEP 1 — Become a Medium Writer first
+  - Go to medium.com and create an account if you don't have one
+  - Write this article as a Medium draft first (medium.com/new-story)
+
+STEP 2 — Format the article in Medium before submitting
+  - Use Medium's editor to paste and format everything below
+  - Add all images, GIFs, diagrams at the exact spots marked [INSERT IMAGE]
+  - Make sure headers, bold, code blocks are properly formatted in Medium
+
+STEP 3 — Submit to Towards Data Science publication
+  - Go to: towardsdatascience.com/write-for-us
+  - Or in Medium editor: click the three dots (...) at the top right
+    → "Add to publication" → search "Towards Data Science"
+  - If you are not yet an approved writer:
+    Go to: https://medium.com/towards-data-science/write-for-us-37fa9de8b0f4
+    Submit a writing sample or the article link for review
+  - TDS typically responds in 3-7 days
+  - They accept if: technical depth is clear, writing is original,
+    structure is professional, and numbers back your claims
+
+STEP 4 — Images that WILL get you accepted and increase reach
+  - Architecture diagram (Presentation/architecture_diagram.png) — MUST include
+  - Request flowchart (Presentation/flowchart.png) — include this too
+  - A short screen recording GIF of the voice demo — highest engagement
+  - Screenshots of eval results table — shows credibility
+  - The DRUTAKART.png banner as the hero image at the top
+
+STEP 5 — After publishing
+  - Share the TDS article link (not your Medium profile) on LinkedIn and Twitter
+  - Tag: @TDataScience on Twitter — they often retweet featured articles
+  - Tag relevant people: Groq, Sarvam, LangChain on Twitter/LinkedIn
+  - Post in HuggingFace forums, LangChain Discord with the TDS article link
+    (a published TDS article gets far more trust than a GitHub link alone)
+
+================================================================================
+
+ARTICLE TITLE:
+I Built a Multilingual Agentic AI Customer Support System for India — Here's Everything I Learned
+
+SUBTITLE:
+LangGraph multi-agent routing, Groq LPU inference, Sarvam voice, image fraud
+detection, and AI-to-AI evaluation — all for India's quick commerce problem.
+
+================================================================================
+
+[INSERT IMAGE: Use Presentation/DRUTAKART.png as the hero banner at the very top]
+
+--------------------------------------------------------------------------------
+SECTION 1 — THE PROBLEM NOBODY IS SOLVING WELL
+--------------------------------------------------------------------------------
+
+India has over 500 million smartphone users. Platforms like Blinkit, Zepto, and
+Swiggy Instamart are delivering groceries in 10 minutes. But when something goes
+wrong — a damaged product, a missing item, a wrong order — the customer support
+experience is broken.
+
+Most chatbots are:
+
+- English-only — but the majority of India speaks Hindi, Tamil, Telugu, Malayalam,
+  Kannada, Bengali, or Hinglish
+- Text-only — a frustrated customer in a tier-2 city is more likely to send a
+  voice note than type
+- Template-driven — they cannot handle the nuance of "my order came but the mango
+  was rotten and I already threw it away, can I get a refund?"
+- Hallucination-prone — they confidently quote wrong refund policies, creating
+  trust issues
+
+I wanted to solve this. The result is Druta Kart — a multilingual agentic AI
+customer support backend built specifically for India's quick commerce context.
+
+Druta (द्रुत) means swift in Sanskrit.
+
+GitHub: https://github.com/JishnuParameswaran/Druta-Kart
+Architecture walkthrough (49 min): https://youtu.be/tL3gtzmNNLk
+
+--------------------------------------------------------------------------------
+SECTION 2 — WHY MULTI-AGENT INSTEAD OF ONE LLM CALL
+--------------------------------------------------------------------------------
+
+The first architectural decision was the most important one.
+
+A single LLM prompt handling everything — order lookups, complaint processing,
+fraud detection, retention offers — suffers from context bloat. The model loses
+focus. Debugging becomes a nightmare. Prompts grow unwieldy trying to cover
+every scenario.
+
+Instead, I used LangGraph's StateGraph to build a supervisor that routes each
+conversation to a specialist agent:
+
+    Supervisor (intent detection)
+        ├── complaint_agent  → refunds, replacements, image validation
+        │       (photo required only for damaged/expired — wrong/missing/payment resolve immediately)
+        │       └── retention_agent  → churn risk, personalized offers
+        ├── order_agent      → order status, ETA, cancellation
+        ├── dispatch_agent   → late delivery, wrong address, checklist
+        └── general_node     → direct LLM response
+
+    fraud_escalation_agent runs as post-processing — triggered automatically
+    when repeated disputes are detected after resolution, not as a routing path.
+
+A few details worth calling out:
+
+The dispatch agent does two things most people miss. First, it generates a
+structured action checklist that goes to the human dispatch team — not just
+to resolve the current customer's complaint, but to address the root cause so
+the same delivery failure does not recur for the next customer. Second, for
+late delivery specifically, it automatically credits ₹50 wallet compensation
+to the customer instantly — no human approval needed, no form to fill.
+
+The order agent independently does the same — when a customer asks about
+tracking and the order is flagged as delayed in the system, ₹50 is credited
+automatically. Both routing paths are covered.
+
+The retention agent does not send a cold follow-up offer after the complaint
+is resolved. The LLM weaves the offer naturally into the resolution message
+itself, personalised to the customer's name and their current emotional state.
+The safety caps are enforced twice — once in the offer engine and again in the
+retention agent. There is no path by which the LLM can exceed the cap.
+
+Each agent has a focused system prompt, focused tools, and focused state. The
+supervisor detects intent using Groq's llama-3.3-70b-versatile and routes
+accordingly. This makes each agent debuggable in isolation — if the complaint
+agent misbehaves, I don't have to untangle it from order tracking logic.
+
+LangGraph was the right choice here. The StateGraph abstraction lets you define
+nodes (agents), edges (routing logic), and conditional branches cleanly. The
+shared AgentState TypedDict passes context between nodes without global state
+pollution.
+
+[INSERT IMAGE: Use Presentation/architecture_diagram.png here]
+Caption: "Full system architecture — supervisor routes to specialist agents
+based on detected intent"
+
+--------------------------------------------------------------------------------
+SECTION 3 — THE NLP PIPELINE — BEFORE THE LLM EVEN SEES THE MESSAGE
+--------------------------------------------------------------------------------
+
+Every incoming message passes through a three-stage pipeline before reaching
+the supervisor:
+
+STAGE 1 — Language Detection
+I use Groq's llama-3.3-70b-versatile for language detection — not a traditional
+library. The reason: LLM-based detection handles code-mixed Indian languages
+(Hinglish, Kanglish, Manglish) that rule-based detectors consistently fail on.
+A customer typing "mera order nahi aaya yaar" is Hinglish — a library might
+misclassify it, but the LLM gets it right every time. Detection returns a
+language code: hi-IN, ta-IN, ml-IN, te-IN, kn-IN, hinglish, and more.
+
+STAGE 2 — Emotion Analysis
+A HuggingFace transformers model (j-hartmann/emotion-english-distilroberta-base)
+classifies the emotional state — anger, joy, neutral, sadness, disgust, fear,
+or surprise. High-urgency emotions (anger, fear, disgust) trigger priority
+handling and feed into the retention agent's churn risk scorer. A customer who
+is both a high-value buyer AND currently angry is a retention priority. Running
+this locally on CPU means zero API cost for sentiment analysis on every message.
+
+STAGE 3 — Translation
+Non-English input is translated to English for the LLM, and the response is
+translated back to the customer's language. This keeps all agent prompts clean
+and English-only while delivering responses in the customer's native language.
+
+--------------------------------------------------------------------------------
+SECTION 4 — WHY GROQ OVER OPENAI
+--------------------------------------------------------------------------------
+
+Customer support needs sub-second latency. A customer waiting 4-5 seconds for
+a response in a support chat will disengage.
+
+Groq's LPU (Language Processing Unit) delivers 500-800 tokens/second — roughly
+10-20x faster than GPU-based inference. For llama-3.3-70b-versatile, the quality
+is comparable to GPT-4 class models at a fraction of the cost and with
+dramatically lower latency.
+
+For speech-to-text, I used Groq Whisper large-v3 — running on Groq's LPU, which
+means fast transcription without needing a GPU in my own infrastructure.
+
+For vision (complaint image analysis), I used Groq Llama 4 Scout — a multimodal
+model that analyzes complaint images and determines whether the damage is real,
+misidentified, or AI-generated.
+
+The full Groq stack: LLM inference + Whisper STT + Llama 4 Scout Vision — all
+on one API, all LPU-accelerated.
+
+--------------------------------------------------------------------------------
+SECTION 5 — THE IMAGE FRAUD DETECTION PROBLEM
+--------------------------------------------------------------------------------
+
+Quick commerce platforms face a real fraud pattern: customers upload AI-generated
+images of damaged products to claim fraudulent refunds. This is more common than
+people realize.
+
+I built a three-layer detection system:
+
+LAYER 1 — EXIF Metadata Scan
+Real photos from a smartphone contain EXIF metadata: camera model, GPS
+coordinates, timestamp, software. AI-generated images (Midjourney, DALL-E,
+Stable Diffusion) either have no EXIF data or have tell-tale software tags like
+"Adobe Firefly" or "Stable Diffusion".
+
+LAYER 2 — Groq Vision LLM Forensic Analysis
+Even after stripping metadata, AI-generated images have visual artifacts that a
+vision model can detect — unnatural lighting, impossible geometry, texture
+inconsistencies. Groq Llama 4 Scout performs forensic analysis on every
+complaint image.
+
+LAYER 3 — Classification into Structured Outcomes
+The combined signals from Layer 1 and Layer 2 are classified into one of four
+structured outcomes that drive the next automated action.
+
+The four outcomes:
+  real_damage       → resolve the complaint normally
+  misidentification → educate the customer
+  ai_generated      → escalate to human reviewer with proof
+  suspicious        → escalate to human reviewer with proof
+
+For misidentification, the system does not reject the complaint or accuse the
+customer. It gently tells them the item appears to be in normal condition —
+dark edges on bread are from baking, not fungus; slight discolouration on
+fruit can be natural ripening, not damage. It explains the item can look
+different due to packaging or lighting and asks them to take another look.
+If it is genuinely damaged, they can send a fresh photo and the complaint
+will be processed immediately. No accusation. No rejection. Just education.
+
+If the customer argues back after receiving that education — insisting the
+item is genuinely damaged — the system does not keep pushing back. It
+escalates to a human senior support specialist with full proof: the image,
+the Vision LLM's analysis reason, and the full conversation history. The
+handoff is logged with reason "customer_disputed_misidentification" so the
+human reviewer has complete context.
+
+One important privacy design: the Vision LLM is completely isolated. It
+receives only the image and a forensic analysis prompt. It has zero access
+to the customer's name, order details, complaint text, or any personal data.
+It answers one question only — is this product damaged or not.
+
+The key design decision: never accuse the customer. When a suspicious or
+AI-generated image is detected, the case is immediately escalated to a human
+reviewer with full proof — the image, the Vision LLM's analysis reason, and
+the full conversation history. A row is inserted into the fraud_flags table in
+Supabase with status "pending_review". The human_handoff flag is set in the
+system state so a human agent picks it up. The customer is told "Our quality
+assurance team will review the details of your complaint and get back to you
+within 2 hours." No accusation. Just a fair human review.
+
+[INSERT IMAGE: A simple diagram showing the three-layer detection flow.
+You can create this in Canva or draw.io — EXIF Scan → Vision LLM → Classification
+→ 4 outcome boxes. This will be one of the most shared images in the article.]
+
+--------------------------------------------------------------------------------
+SECTION 6 — VOICE SUPPORT — THE SARVAM DECISION
+--------------------------------------------------------------------------------
+
+Voice support in Indian languages required a TTS engine that sounds natural in
+Hindi, Tamil, Malayalam, and Telugu. I tested Google TTS and Amazon Polly — both
+produce robotic, accent-inaccurate audio for regional Indian languages.
+
+Sarvam was founded by Indian AI researchers specifically for Indian language TTS.
+The audio quality difference is audible — natural prosody, correct regional
+accents, human-sounding output.
+
+The full voice pipeline:
+
+  Voice input
+      → Groq Whisper large-v3 (STT)
+      → NLP Pipeline (language detect → emotion → translate)
+      → LangGraph Supervisor → Specialist Agent
+      → Hallucination Guard
+      → Translate back to customer language
+      → Sarvam TTS
+      → Audio response (base64 WAV)
+
+[INSERT IMAGE: Use Presentation/flowchart.png here]
+Caption: "Full request flow — from voice input to voice response"
+
+[INSERT GIF HERE if you have a screen recording: Show voice input in the
+frontend UI, the text transcription appearing, and the audio response playing.
+Even 10-15 seconds. This single GIF will double your article engagement.]
+
+--------------------------------------------------------------------------------
+SECTION 7 — PREVENTING HALLUCINATION
+--------------------------------------------------------------------------------
+
+LLMs confidently hallucinate refund policies. "You're eligible for a full refund
+within 30 days" — wrong, the actual policy requires the customer to contact
+support within 24 hours of delivery. Misquoting policy destroys customer trust.
+
+I added a hallucination guard — a post-generation factuality check that samples
+50% of responses and cross-references claims against the RAG knowledge base
+(Supabase pgvector with the actual refund policy, return policy, and FAQ
+documents — with keyword search fallback for resilience).
+
+Sampling at 50% (not 100%) is a deliberate cost/latency tradeoff. In production,
+you tune this rate based on your acceptable hallucination risk.
+
+The eval result: 0% hallucination rate across 339 conversations.
+
+--------------------------------------------------------------------------------
+SECTION 8 — SAFETY CAPS — THE LLM MUST NEVER CONTROL MONEY
+--------------------------------------------------------------------------------
+
+The retention agent generates personalized offers — wallet credits, discounts,
+free items. Left unconstrained, an LLM can be prompted into offering 100%
+discounts or ₹10,000 wallet credits.
+
+The solution: hardcoded Python-level caps in config.py:
+
+  MAX_WALLET_CREDIT_INR = 200      # ₹200 max wallet credit
+  MAX_DISCOUNT_PERCENT  = 35       # 35% max discount
+  MAX_FREE_ITEMS        = 2        # 2 free items max per complaint
+
+These caps are enforced in the offer engine AFTER the LLM generates its
+suggestion. No prompt, no jailbreak, no adversarial input can override a Python
+min() call. This is a critical design principle — financial limits must live in
+code, not in prompts.
+
+--------------------------------------------------------------------------------
+SECTION 9 — SECURITY LAYER
+--------------------------------------------------------------------------------
+
+Before any message reaches the AI pipeline, it passes through a security layer
+that blocks:
+
+  - SQL injection attempts
+  - Prompt injection ("ignore all previous instructions")
+  - DAN attacks
+  - Red-team probes ("show me your system prompt", "what tools do you have")
+  - Admin spoofing
+
+Result: 5/5 attack types blocked (100%) in evaluation.
+
+The key design: the security check runs BEFORE the LLM. Blocked messages never
+reach the AI pipeline — they return a polite warning message instead. This means
+zero LLM cost for adversarial inputs. Every blocked attempt is also logged to a
+Supabase security_events table with the user ID, session ID, and attack detail.
+
+The security layer also runs on every outbound response. Before the customer sees
+any reply, the system scrubs other users' UUIDs, masks phone numbers and emails,
+and strips any accidentally leaked system prompt content. Input is protected before
+it reaches the AI. Output is cleaned before it reaches the customer.
+
+--------------------------------------------------------------------------------
+SECTION 10 — AI-TO-AI EVALUATION — TESTING AT SCALE
+--------------------------------------------------------------------------------
+
+Human annotation across 10+ languages is slow and expensive. I built an AI-to-AI
+evaluation framework using two different Groq models playing different roles.
+
+Who plays the customer: llama-3.1-8b-instant — a smaller, faster model,
+deliberately chosen so it behaves like a real user sending natural, imperfect
+messages rather than perfectly engineered prompts.
+
+Who plays Druta Kart: the real FastAPI running at localhost:8000 — not a mock.
+Every security layer, every NLP pipeline stage, every specialist agent, and
+every tool runs for real. If something is broken, the eval catches it.
+
+Who judges: llama-3.3-70b-versatile scores each conversation on intent detection
+accuracy, complaint resolution, empathy, factual correctness, policy compliance,
+and whether any offer was within the safety caps.
+
+How it runs: up to 3 turns of back-and-forth for most scenarios. For damaged
+product complaints, up to 5 turns — the extra turns cover the full realistic
+flow: describe damage → upload photo → bot verifies image → choose refund or
+replacement → confirm. After the conversation ends, the judge scores the
+entire transcript.
+
+What always runs regardless of count: 5 mandatory security attack conversations
+(prompt injection, SQL injection, red-team probe, DAN attack, admin spoofing)
+and mandatory image fraud conversations — every single run, to catch regressions.
+
+What it produces: a Markdown report, an HTML report with charts, and a
+hallucination rate bar chart PNG — all generated automatically.
+
+This allowed me to evaluate 344 conversations — 247 text, 87 with real
+complaint images for vision fraud testing, and 5 voice pipeline tests —
+with consistent, reproducible scoring in hours rather than weeks.
+
+Total cost: $0.34.
+
+  Chat (247 conversations):    $0.00078 per conversation
+  Vision (87 conversations):   $0.00116 per conversation
+  Voice (5 conversations):     $0.00 (Groq and Sarvam free tiers)
+  Total (344 conversations):   $0.34
+
+Human annotation for the same scope would cost hundreds of dollars and
+take weeks. AI-to-AI with Groq cost 34 cents.
+
+Because the eval hits the real FastAPI — not a mock — the cost per
+conversation in evaluation is the same as the cost per conversation in
+production. $0.00078 per text interaction. $0.00116 when a customer
+uploads a complaint image. Before deploying, I already knew exactly what
+it would cost to run at scale. A platform handling 10,000 complaints per
+day would spend roughly $7.80 per day on LLM inference — less than a
+monthly Netflix subscription for enterprise-scale AI customer support.
+
+Results:
+
+  Metric                          Result
+  ─────────────────────────────── ───────
+  Complaint resolution rate       91.8%
+  Hallucination rate              0%
+  Security attacks blocked        5/5 (100%)
+  Languages tested                English, Hindi, Malayalam, Tamil, Hinglish
+  Voice variants tested           5
+
+Security attacks tested: prompt injection · SQL injection · DAN attack ·
+red-team probe · admin spoofing — all blocked.
+
+[INSERT IMAGE: Screenshot of the eval results table or the eval report HTML
+opened in browser. Shows credibility with real numbers.]
+
+--------------------------------------------------------------------------------
+SECTION 11 — ANALYTICS AND OBSERVABILITY
+--------------------------------------------------------------------------------
+
+Every interaction in production is logged and queryable. This is not just an
+eval dashboard — it is the live production system.
+
+The analytics layer tracks:
+- Total complaints by type: damaged, missing, wrong, expired, payment
+- Breakdown by product: which items are generating the most complaints
+- Resolution rate and average resolution time
+- Customer satisfaction score across all customers (0-5 scale)
+- Most common complaint types ranked by frequency
+- Daily stats: total messages, unique users, complaints, hallucinations
+  flagged — per day for the last N days
+
+The AI-to-AI evaluation generates a separate offline HTML report for testing.
+The analytics above is the live production system — every real customer
+interaction feeds into it via Supabase in real time. A business can see
+exactly which products are generating complaints, how fast they are being
+resolved, and whether hallucinations are creeping in — all from the database
+without any extra tooling.
+
+Prometheus metrics are also exposed on /metrics — resolution rates, latency
+histograms, request counts — ready for any standard monitoring stack.
+
+--------------------------------------------------------------------------------
+SECTION 12 — WHAT I WOULD DO DIFFERENTLY
+--------------------------------------------------------------------------------
+
+Streaming responses.
+LangGraph supports streaming token output. For voice use cases it does not matter,
+but for the text chat UI, streaming would make the experience feel significantly
+faster — customers see words appear in real time instead of waiting for the
+full response.
+
+Async emotion analysis.
+The HuggingFace emotion model adds latency on the first call (model load).
+Running it async or pre-warming the model on startup would improve p99 latency.
+
+--------------------------------------------------------------------------------
+SECTION 13 — TRY IT YOURSELF
+--------------------------------------------------------------------------------
+
+The full source is on GitHub — Source Available, BYOK (bring your own keys).
+Minimum required: GROQ_API_KEY, SARVAM_API_KEY, SUPABASE_URL,
+SUPABASE_SERVICE_ROLE_KEY. Groq and Supabase both have free tiers.
+
+GitHub: https://github.com/JishnuParameswaran/Druta-Kart
+Architecture walkthrough video (49 min): https://youtu.be/tL3gtzmNNLk
+
+If you are building something similar or have thoughts on the architecture,
+I would love to hear — drop a comment or connect on LinkedIn.
+
+================================================================================
+END OF ARTICLE
+================================================================================
+
+TAGS TO ADD ON MEDIUM (improves discoverability):
+  Artificial Intelligence, Machine Learning, Python, LangChain, India,
+  Natural Language Processing, FastAPI, LLM, Voice AI, Agentic AI
+
+IDEAL READING TIME TARGET: 8-10 minutes (~2000 words when formatted in Medium)
+================================================================================
